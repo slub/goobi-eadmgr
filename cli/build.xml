@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<project xmlns:ivy="antlib:org.apache.ivy.ant"
+	name="goobi-eadmgr-cli">
+
+	<target name="resolve" description="resolve library dependencies">
+		<ivy:retrieve sync="true"/>
+	</target>
+
+</project>
