@@ -21,13 +21,35 @@
   ~ Suite 330, Boston, MA 02111-1307 USA
   -->
 
-<ivy-module version="2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
+<project xmlns:ivy="antlib:org.apache.ivy.ant">
 
-    <info organisation="org.goobi" module="eadmgr.cli"/>
+	<property name="src.dir" value="src"/>
+	<property name="build.dir" value="build"/>
 
-    <dependencies>
-        <dependency org="commons-cli" name="commons-cli" rev="1.2"/>
-    </dependencies>
+	<target name="splash">
+		<echo>========================================================</echo>
+		<echo>= Building: ${ant.project.name}</echo>
+		<echo>========================================================</echo>
+	</target>
 
-</ivy-module>
+	<target name="init" depends="splash">
+		<mkdir dir="${build.dir}"/>
+	</target>
+
+	<target name="check-ivy-file">
+		<available file="ivy.xml" property="ivy-file-present"/>
+	</target>
+
+	<target name="resolve" depends="check-ivy-file" if="ivy-file-present">
+		<ivy:retrieve sync="true" log="download-only"/>
+	</target>
+
+	<target name="compile" depends="init, resolve">
+		<javac includeantruntime="false" srcdir="${src.dir}" destdir="${build.dir}"/>
+	</target>
+
+	<target name="clean">
+		<delete dir="${build.dir}"/>
+	</target>
+
+</project>
