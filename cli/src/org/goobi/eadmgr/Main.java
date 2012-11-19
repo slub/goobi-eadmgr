@@ -21,9 +21,62 @@
  */
 package org.goobi.eadmgr;
 
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
 class Main {
 
-	public static void main(String[] args) {
+	private static final String PROMPT_NAME = "eadmgr [Options] [File]";
+	private static final String PROMPT_HINT = "Try 'eadmgr -h' for more information.";
+	private static final Options options = new Options();
+	static {
+		options.addOption("h", "help", false, "Print this usage information");
 	}
 
+	public static void main(String[] args) {
+
+		CommandLine cmd = parseArguments(args);
+		
+		if (noOptionsOrHelpRequested(args, cmd)) {
+			printUsageInfo(options);
+			System.exit(0);
+		}
+
+		String[] leftOverArgs = cmd.getArgs();
+		if (leftOverArgs.length == 0) {
+			exitWithError(1, "No filename given.");
+		}
+
+	}
+
+	private static boolean noOptionsOrHelpRequested(String[] args, CommandLine cmd) {
+		return (args.length == 0) || (cmd.hasOption("h"));
+	}
+
+	private static CommandLine parseArguments(String[] args) {
+		CommandLineParser parser = new BasicParser();
+		try {
+			return parser.parse(options, args);
+		}
+		catch (ParseException pex) {
+			exitWithError(1, pex.getMessage() + "\n" + PROMPT_HINT);
+		}
+		return null;
+	}
+
+	private static void printUsageInfo(Options options) {
+		HelpFormatter formatter = new HelpFormatter();
+		formatter.printHelp(PROMPT_NAME, options);
+	}
+
+	private static void exitWithError(int code, String msg) {
+		System.err.println("Error: " + msg);
+		System.exit(code);
+	}
 }
+
