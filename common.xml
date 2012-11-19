@@ -45,7 +45,11 @@
 	</target>
 
 	<target name="compile" depends="init, resolve">
-		<javac includeantruntime="false" srcdir="${src.dir}" destdir="${build.dir}"/>
+		<javac includeantruntime="false" srcdir="${src.dir}" destdir="${build.dir}">
+			<classpath>
+				<fileset dir="${basedir}/lib"/>
+			</classpath>
+		</javac>
 	</target>
 
 	<target name="clean">
