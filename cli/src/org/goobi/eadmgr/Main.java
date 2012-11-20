@@ -21,6 +21,8 @@
  */
 package org.goobi.eadmgr;
 
+import java.io.File;
+
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -47,11 +49,24 @@ class Main {
 			System.exit(0);
 		}
 
+		String filename = getFilenameFromArguments(cmd);
+
+		File eadFile = new File(filename);
+		if (!eadFile.exists() || !eadFile.canRead() || !eadFile.isFile()) {
+			exitWithError(1, "Cannot read " + eadFile.getAbsolutePath());
+		}
+
+	}
+
+	private static String getFilenameFromArguments(CommandLine cmd) {
 		String[] leftOverArgs = cmd.getArgs();
 		if (leftOverArgs.length == 0) {
 			exitWithError(1, "No filename given.");
 		}
-
+		if (leftOverArgs.length > 1) {
+			exitWithError(1, "Only one filename allowed.");
+		}
+		return leftOverArgs[0];
 	}
 
 	private static boolean noOptionsOrHelpRequested(String[] args, CommandLine cmd) {
