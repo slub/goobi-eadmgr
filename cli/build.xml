@@ -29,7 +29,10 @@
 	<target name="package" depends="compile">
 		<jar destfile="${build.dir}/${ant.project.name}.jar">
 			<fileset dir="${build.dir}" includes="**/*.class"/>
-			<zipgroupfileset dir="${basedir}/lib" includes="*.jar"/>
+			<zipgroupfileset dir="${basedir}">
+				<include name="lib/*.jar"/>
+				<include name="slib/*.jar"/>
+			</zipgroupfileset>
 			<manifest>
 				<attribute name="Implementation-Title" value="${ant.project.name}"/>
 				<attribute name="Main-Class" value="org.goobi.eadmgr.Main"/>

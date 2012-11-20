@@ -21,6 +21,8 @@
  */
 package org.goobi.eadmgr;
 
+import isbn1931666229.EadDocument;
+
 import java.io.File;
 
 import org.apache.commons.cli.BasicParser;
@@ -54,6 +56,12 @@ class Main {
 		File eadFile = new File(filename);
 		if (!eadFile.exists() || !eadFile.canRead() || !eadFile.isFile()) {
 			exitWithError(1, "Cannot read " + eadFile.getAbsolutePath());
+		}
+
+		try {
+			EadDocument ead = EadDocument.Factory.parse(eadFile);
+		} catch (Exception ex) {
+			exitWithError(1, ex.getMessage());
 		}
 
 	}

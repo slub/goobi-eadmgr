@@ -28,6 +28,7 @@
 
 	<dependencies>
 		<dependency org="commons-cli" name="commons-cli" rev="1.2" conf="*->*,!sources,!javadoc"/>
+		<dependency org="org.apache.xmlbeans" name="xmlbeans" rev="2.4.0" conf="*->*,!sources,!javadoc"/>
 	</dependencies>
 
 </ivy-module>

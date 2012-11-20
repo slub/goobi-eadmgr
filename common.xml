@@ -26,6 +26,11 @@
 	<property name="src.dir" value="src"/>
 	<property name="build.dir" value="build"/>
 
+	<path id="compile.classpath">
+		<fileset dir="${basedir}/lib"/>
+		<fileset dir="${basedir}/slib"/>
+	</path>
+
 	<target name="splash">
 		<echo>========================================================</echo>
 		<echo>= Building: ${ant.project.name}</echo>
@@ -45,11 +50,7 @@
 	</target>
 
 	<target name="compile" depends="init, resolve">
-		<javac includeantruntime="false" srcdir="${src.dir}" destdir="${build.dir}">
-			<classpath>
-				<fileset dir="${basedir}/lib"/>
-			</classpath>
-		</javac>
+		<javac includeantruntime="false" srcdir="${src.dir}" destdir="${build.dir}" classpathref="compile.classpath"/>
 	</target>
 
 	<target name="clean">
