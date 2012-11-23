@@ -40,6 +40,7 @@ class Main {
 	static {
 		options.addOption("h", "help", false, "Print this usage information");
 		options.addOption("p", "print", false, "Parse given file and print XML structure");
+		options.addOption("v", "validate", false, "Parse given file and validate XML structure. Exits with error code 1 if validation fails.");
 	}
 
 	public static void main(String[] args) {
@@ -60,6 +61,13 @@ class Main {
 
 		try {
 			EadDocument ead = EadDocument.Factory.parse(eadFile);
+
+			if (cmd.hasOption("v")) {
+					System.out.print("Validating...");
+					boolean valid = ead.validate();
+					System.out.println(valid?  "[OK]" : "[FAIL]");
+					System.exit(valid? 0:1);
+				}
 
 			if (cmd.hasOption("p")) {
 				System.out.println(ead.xmlText());
