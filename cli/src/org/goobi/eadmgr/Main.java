@@ -59,8 +59,13 @@ class Main {
 			exitWithError(1, "Cannot read " + eadFile.getAbsolutePath());
 		}
 
+		System.out.println("Processing " + filename);
+
 		try {
+
+			System.out.print("Parsing...");
 			EadDocument ead = EadDocument.Factory.parse(eadFile);
+			System.out.println("[OK]");
 
 			if (cmd.hasOption("v")) {
 					System.out.print("Validating...");
