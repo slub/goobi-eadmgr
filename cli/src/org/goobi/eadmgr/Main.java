@@ -39,6 +39,7 @@ class Main {
 	private static final Options options = new Options();
 	static {
 		options.addOption("h", "help", false, "Print this usage information");
+		options.addOption("p", "print", false, "Parse given file and print XML structure");
 	}
 
 	public static void main(String[] args) {
@@ -59,6 +60,11 @@ class Main {
 
 		try {
 			EadDocument ead = EadDocument.Factory.parse(eadFile);
+
+			if (cmd.hasOption("p")) {
+				System.out.println(ead.xmlText());
+			}
+
 		} catch (Exception ex) {
 			exitWithError(1, ex.getMessage());
 		}
