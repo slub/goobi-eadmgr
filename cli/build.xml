@@ -35,7 +35,7 @@
 			</zipgroupfileset>
 			<manifest>
 				<attribute name="Implementation-Title" value="${ant.project.name}"/>
-				<attribute name="Main-Class" value="org.goobi.eadmgr.Main"/>
+				<attribute name="Main-Class" value="org.goobi.eadmgr.Cli"/>
 			</manifest>
 		</jar>
 	</target>
