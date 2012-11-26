@@ -41,7 +41,10 @@ class Main {
 		options.addOption("h", "help", false, "Print this usage information");
 		options.addOption("p", "print", false, "Parse given file and print XML structure");
 		options.addOption("v", "validate", false, "Parse given file and validate XML structure. Exits with error code 1 if validation fails.");
+		options.addOption("q", "quiet", false, "No output to stdout.");
 	}
+
+	private static boolean isQuietOption = false;
 
 	public static void main(String[] args) {
 
@@ -52,6 +55,8 @@ class Main {
 			System.exit(0);
 		}
 
+		isQuietOption = cmd.hasOption('q');
+
 		String filename = getFilenameFromArguments(cmd);
 
 		File eadFile = new File(filename);
@@ -59,29 +64,41 @@ class Main {
 			exitWithError(1, "Cannot read " + eadFile.getAbsolutePath());
 		}
 
-		System.out.println("Processing " + filename);
+		println("Processing " + filename);
 
 		try {
 
-			System.out.print("Parsing...");
+			print("Parsing...");
 			EadDocument ead = EadDocument.Factory.parse(eadFile);
-			System.out.println("[OK]");
+			println("[OK]");
 
 			if (cmd.hasOption("v")) {
-					System.out.print("Validating...");
+					print("Validating...");
 					boolean valid = ead.validate();
-					System.out.println(valid?  "[OK]" : "[FAIL]");
+					println(valid?  "[OK]" : "[FAIL]");
 					System.exit(valid? 0:1);
-				}
+			}
 
 			if (cmd.hasOption("p")) {
-				System.out.println(ead.xmlText());
+				println(ead.xmlText());
 			}
 
 		} catch (Exception ex) {
 			exitWithError(1, ex.getMessage());
 		}
 
+	}
+
+	private static void println(String msg) {
+		if (!isQuietOption) {
+			System.out.println(msg);
+		}
+	}
+
+	private static void print(String msg) {
+		if (!isQuietOption) {
+			System.out.print(msg);
+		}
 	}
 
 	private static String getFilenameFromArguments(CommandLine cmd) {
@@ -116,7 +133,7 @@ class Main {
 	}
 
 	private static void exitWithError(int code, String msg) {
-		System.err.println("Error: " + msg);
+		println("Error: " + msg);
 		System.exit(code);
 	}
 }
