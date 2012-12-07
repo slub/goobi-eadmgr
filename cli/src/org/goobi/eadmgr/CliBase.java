@@ -56,7 +56,8 @@ public abstract class CliBase {
 	/**
 	 * Implement pre-processing steps here, if necessary.
 	 */
-	public abstract void preProcessing() throws Exception;
+	public void preProcessing() throws Exception {
+	}
 
 	/**
 	 * Implement actual argument processing here.
@@ -68,7 +69,8 @@ public abstract class CliBase {
 	/**
 	 * Implement post-processing steps here, if necessary.
 	 */
-	public abstract void postProcessing() throws Exception;
+	public void postProcessing() throws Exception {
+	}
 
 	/**
 	 * Handle any Exception that might break the workflow.

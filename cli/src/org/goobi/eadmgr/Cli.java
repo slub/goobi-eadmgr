@@ -149,10 +149,6 @@ class Cli extends CliBase {
 	}
 
 	@Override
-	public void postProcessing() {
-	}
-
-	@Override
 	public void printUsageInformation() {
 		String PROMPT_NAME = "eadmgr [Options] [File]";
 		HelpFormatter formatter = new HelpFormatter();
