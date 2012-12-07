@@ -102,35 +102,42 @@ class Cli extends CliBase {
 	public int processing() throws Exception {
 		println("Processing " + eadFile.getAbsolutePath());
 
+		int returnCode = 0;
+
 		EadDocument ead = parseEadFile();
 
 		if (cmdl.hasOption("v")) {
-			print("Validating...");
-
-			List<XmlError> validationErrors = new ArrayList<XmlError>();
-			XmlOptions opt = new XmlOptions();
-			opt.setErrorListener(validationErrors);
-
-			boolean valid = ead.validate(opt);
-
-			if (valid) {
-				println("[OK]");
-				return 0;
-			} else {
-				println("[FAIL]");
-				opt.setSavePrettyPrint();
-				opt.setSavePrettyPrintIndent(4);
-				opt.setSavePrettyPrintOffset(4);
-				for(XmlError e : validationErrors) {
-					println("[" + e.getLine() + "] " + e.getMessage());
-					println(e.getCursorLocation().xmlText(opt) + "\n");
-				}
-				return 1;
-			}
+			returnCode = validateEadDocument(ead);
 		}
 
 		if (cmdl.hasOption("p")) {
 			println(ead.xmlText());
+		}
+
+		return returnCode;
+	}
+
+	private int validateEadDocument(EadDocument ead) {
+		print("Validating...");
+
+		List<XmlError> validationErrors = new ArrayList<XmlError>();
+		XmlOptions opt = new XmlOptions();
+		opt.setErrorListener(validationErrors);
+		opt.setSavePrettyPrint();
+		opt.setSavePrettyPrintIndent(4);
+		opt.setSavePrettyPrintOffset(4);
+
+		boolean valid = ead.validate(opt);
+
+		if (valid) {
+			println("[OK]");
+		} else {
+			println("[FAIL]");
+			for(XmlError e : validationErrors) {
+				println("[" + e.getLine() + "] " + e.getMessage());
+				println(e.getCursorLocation().xmlText(opt) + "\n");
+			}
+			return 1;
 		}
 
 		return 0;
