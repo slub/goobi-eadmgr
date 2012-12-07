@@ -27,8 +27,12 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
+import org.apache.xmlbeans.XmlError;
+import org.apache.xmlbeans.XmlOptions;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 class Cli extends CliBase {
 
@@ -97,14 +101,35 @@ class Cli extends CliBase {
 		println("Processing " + eadFile.getAbsolutePath());
 
 		print("Parsing...");
-		EadDocument ead = EadDocument.Factory.parse(eadFile);
+
+		XmlOptions opt = new XmlOptions();
+		opt.setLoadLineNumbers();
+
+		EadDocument ead = EadDocument.Factory.parse(eadFile,opt);
 		println("[OK]");
 
 		if (cmdl.hasOption("v")) {
 			print("Validating...");
-			boolean valid = ead.validate();
-			println(valid ? "[OK]" : "[FAIL]");
-			return valid ? 0 : 1;
+
+			List<XmlError> validationErrors = new ArrayList<XmlError>();
+			opt.setErrorListener(validationErrors);
+
+			boolean valid = ead.validate(opt);
+
+			if (valid) {
+				println("[OK]");
+				return 0;
+			} else {
+				println("[FAIL]");
+				opt.setSavePrettyPrint();
+				opt.setSavePrettyPrintIndent(4);
+				opt.setSavePrettyPrintOffset(4);
+				for(XmlError e : validationErrors) {
+					println("[" + e.getLine() + "] " + e.getMessage());
+					println(e.getCursorLocation().xmlText(opt) + "\n");
+				}
+				return 1;
+			}
 		}
 
 		if (cmdl.hasOption("p")) {
