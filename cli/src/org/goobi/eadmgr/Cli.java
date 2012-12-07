@@ -133,7 +133,7 @@ class Cli extends CliBase {
 			println("[OK]");
 		} else {
 			println("[FAIL]");
-			for(XmlError e : validationErrors) {
+			for (XmlError e : validationErrors) {
 				println("[" + e.getLine() + "] " + e.getMessage());
 				println(e.getCursorLocation().xmlText(opt) + "\n");
 			}
@@ -149,7 +149,7 @@ class Cli extends CliBase {
 		XmlOptions opt = new XmlOptions();
 		opt.setLoadLineNumbers();
 
-		EadDocument ead = EadDocument.Factory.parse(eadFile,opt);
+		EadDocument ead = EadDocument.Factory.parse(eadFile, opt);
 		println("[OK]");
 
 		return ead;
