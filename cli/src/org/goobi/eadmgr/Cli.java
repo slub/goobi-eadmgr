@@ -150,7 +150,6 @@ class Cli extends CliBase {
 
 	@Override
 	public void postProcessing() {
-		//To change body of implemented methods use File | Settings | File Templates.
 	}
 
 	@Override
