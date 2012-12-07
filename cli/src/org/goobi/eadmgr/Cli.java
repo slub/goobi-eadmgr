@@ -28,9 +28,11 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.xmlbeans.XmlError;
+import org.apache.xmlbeans.XmlException;
 import org.apache.xmlbeans.XmlOptions;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -100,18 +102,13 @@ class Cli extends CliBase {
 	public int processing() throws Exception {
 		println("Processing " + eadFile.getAbsolutePath());
 
-		print("Parsing...");
-
-		XmlOptions opt = new XmlOptions();
-		opt.setLoadLineNumbers();
-
-		EadDocument ead = EadDocument.Factory.parse(eadFile,opt);
-		println("[OK]");
+		EadDocument ead = parseEadFile();
 
 		if (cmdl.hasOption("v")) {
 			print("Validating...");
 
 			List<XmlError> validationErrors = new ArrayList<XmlError>();
+			XmlOptions opt = new XmlOptions();
 			opt.setErrorListener(validationErrors);
 
 			boolean valid = ead.validate(opt);
@@ -137,6 +134,18 @@ class Cli extends CliBase {
 		}
 
 		return 0;
+	}
+
+	private EadDocument parseEadFile() throws XmlException, IOException {
+		print("Parsing...");
+
+		XmlOptions opt = new XmlOptions();
+		opt.setLoadLineNumbers();
+
+		EadDocument ead = EadDocument.Factory.parse(eadFile,opt);
+		println("[OK]");
+
+		return ead;
 	}
 
 	@Override
