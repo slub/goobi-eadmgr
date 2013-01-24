@@ -32,8 +32,8 @@
     
     <modelVersion>4.0.0</modelVersion>
     
-    <groupId>gov.loc</groupId>
-    <artifactId>ead</artifactId>
+    <groupId>org.goobi</groupId>
+    <artifactId>eadmgr-ead</artifactId>
     <version>200804</version>
     
     <properties>
