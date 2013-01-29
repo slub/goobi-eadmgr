@@ -27,9 +27,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
-import org.apache.xmlbeans.XmlError;
-import org.apache.xmlbeans.XmlException;
-import org.apache.xmlbeans.XmlOptions;
 
 import java.io.File;
 import java.io.IOException;
@@ -118,41 +115,41 @@ class Cli extends CliBase {
 	}
 
 	private int validateEadDocument(EadDocument ead) {
-		print("Validating...");
-
-		List<XmlError> validationErrors = new ArrayList<XmlError>();
-		XmlOptions opt = new XmlOptions();
-		opt.setErrorListener(validationErrors);
-		opt.setSavePrettyPrint();
-		opt.setSavePrettyPrintIndent(4);
-		opt.setSavePrettyPrintOffset(4);
-
-		boolean valid = ead.validate(opt);
-
-		if (valid) {
-			println("[OK]");
-		} else {
-			println("[FAIL]");
-			for (XmlError e : validationErrors) {
-				println("[" + e.getLine() + "] " + e.getMessage());
-				println(e.getCursorLocation().xmlText(opt) + "\n");
-			}
-			return 1;
-		}
-
-		return 0;
+//		print("Validating...");
+//
+//		List<XmlError> validationErrors = new ArrayList<XmlError>();
+//		XmlOptions opt = new XmlOptions();
+//		opt.setErrorListener(validationErrors);
+//		opt.setSavePrettyPrint();
+//		opt.setSavePrettyPrintIndent(4);
+//		opt.setSavePrettyPrintOffset(4);
+//
+//		boolean valid = ead.validate(opt);
+//
+//		if (valid) {
+//			println("[OK]");
+//		} else {
+//			println("[FAIL]");
+//			for (XmlError e : validationErrors) {
+//				println("[" + e.getLine() + "] " + e.getMessage());
+//				println(e.getCursorLocation().xmlText(opt) + "\n");
+//			}
+//			return 1;
+//		}
+//
+//		return 0;
 	}
 
-	private EadDocument parseEadFile() throws XmlException, IOException {
-		print("Parsing...");
-
-		XmlOptions opt = new XmlOptions();
-		opt.setLoadLineNumbers();
-
-		EadDocument ead = EadDocument.Factory.parse(eadFile, opt);
-		println("[OK]");
-
-		return ead;
+	private EadDocument parseEadFile() throws IOException {
+//		print("Parsing...");
+//
+//		XmlOptions opt = new XmlOptions();
+//		opt.setLoadLineNumbers();
+//
+//		EadDocument ead = EadDocument.Factory.parse(eadFile, opt);
+//		println("[OK]");
+//
+//		return ead;
 	}
 
 	@Override
