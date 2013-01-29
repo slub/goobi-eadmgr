@@ -21,17 +21,20 @@
  */
 package org.goobi.eadmgr;
 
-import isbn1931666229.EadDocument;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
+import org.apache.commons.cli.*;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.net.URL;
 
 class Cli extends CliBase {
 
@@ -101,55 +104,60 @@ class Cli extends CliBase {
 
 		int returnCode = 0;
 
-		EadDocument ead = parseEadFile();
+		Document ead = parseEadFile();
+		if (ead != null) {
+			if (cmdl.hasOption("v")) {
+				returnCode = validateEadDocument(ead);
+			}
 
-		if (cmdl.hasOption("v")) {
-			returnCode = validateEadDocument(ead);
-		}
-
-		if (cmdl.hasOption("p")) {
-			println(ead.xmlText());
+			if (cmdl.hasOption("p")) {
+				println(ead.toString());
+			}
+		} else {
+			returnCode = 1;
 		}
 
 		return returnCode;
 	}
 
-	private int validateEadDocument(EadDocument ead) {
-//		print("Validating...");
-//
-//		List<XmlError> validationErrors = new ArrayList<XmlError>();
-//		XmlOptions opt = new XmlOptions();
-//		opt.setErrorListener(validationErrors);
-//		opt.setSavePrettyPrint();
-//		opt.setSavePrettyPrintIndent(4);
-//		opt.setSavePrettyPrintOffset(4);
-//
-//		boolean valid = ead.validate(opt);
-//
-//		if (valid) {
-//			println("[OK]");
-//		} else {
-//			println("[FAIL]");
-//			for (XmlError e : validationErrors) {
-//				println("[" + e.getLine() + "] " + e.getMessage());
-//				println(e.getCursorLocation().xmlText(opt) + "\n");
-//			}
-//			return 1;
-//		}
-//
-//		return 0;
+	private int validateEadDocument(Document ead) throws IOException, SAXException {
+		print("Validating...");
+
+		SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+		Schema schema = sf.newSchema(new URL("http://www.loc.gov/ead/ead.xsd"));
+		Validator validator = schema.newValidator();
+
+		try {
+			validator.validate(new DOMSource(ead));
+			println("[OK]");
+		} catch (SAXException ex) {
+			println("[Fail]");
+			print(ex.getMessage());
+			return 1;
+		}
+
+		return 0;
 	}
 
-	private EadDocument parseEadFile() throws IOException {
-//		print("Parsing...");
-//
-//		XmlOptions opt = new XmlOptions();
-//		opt.setLoadLineNumbers();
-//
-//		EadDocument ead = EadDocument.Factory.parse(eadFile, opt);
-//		println("[OK]");
-//
-//		return ead;
+	private Document parseEadFile() {
+		print("Parsing...");
+
+		Document doc;
+		try {
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			dbf.setNamespaceAware(true);
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			doc = db.parse(eadFile);
+			// http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
+			doc.getDocumentElement().normalize();
+			println("[OK]");
+		} catch (Exception ex) {
+			println("[Fail]");
+			println(ex.getMessage());
+			return null;
+		}
+
+		return doc;
 	}
 
 	@Override
