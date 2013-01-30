@@ -30,18 +30,24 @@ import org.xml.sax.SAXParseException;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 
 class Cli extends CliBase {
 
+	public static final String EAD_200804_XSDL = "ead-200804.xsd";
+	public static final String HTTP_WWW_LOC_GOV_EAD_EAD_XSDL = "http://www.loc.gov/ead/ead.xsd";
+	private static boolean isQuietOption = false;
 	private String[] args;
 	private Options options;
 	private CommandLine cmdl;
 	private File eadFile;
-	private static boolean isQuietOption = false;
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -127,7 +133,7 @@ class Cli extends CliBase {
 
 			if (validateAgainstSchema) {
 				SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-				Schema schema = sf.newSchema(new URL("http://www.loc.gov/ead/ead.xsd"));
+				Schema schema = sf.newSchema(obtainEADSchema());
 				dbf.setSchema(schema);
 			}
 
@@ -166,6 +172,26 @@ class Cli extends CliBase {
 		}
 
 		return doc;
+	}
+
+	private Source obtainEADSchema() throws Exception {
+
+		Source result;
+
+		// try to get schema file from classpath
+		InputStream is = this.getClass().getClassLoader().getResourceAsStream(EAD_200804_XSDL);
+		if (is != null) {
+			result = new StreamSource(is);
+		} else {
+			try {
+				result = new StreamSource(new URL(HTTP_WWW_LOC_GOV_EAD_EAD_XSDL).openStream());
+			} catch (IOException e) {
+				throw new Exception("Cannot obtain schema for validation. Neither is the file " + EAD_200804_XSDL +
+						" to be found on the classpath nor can the schema be obtained from " + HTTP_WWW_LOC_GOV_EAD_EAD_XSDL + ".");
+			}
+		}
+
+		return result;
 	}
 
 	@Override
