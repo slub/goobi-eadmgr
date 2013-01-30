@@ -23,17 +23,16 @@ package org.goobi.eadmgr;
 
 import org.apache.commons.cli.*;
 import org.w3c.dom.Document;
+import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.dom.DOMSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 
 class Cli extends CliBase {
@@ -104,12 +103,10 @@ class Cli extends CliBase {
 
 		int returnCode = 0;
 
-		Document ead = parseEadFile();
-		if (ead != null) {
-			if (cmdl.hasOption("v")) {
-				returnCode = validateEadDocument(ead);
-			}
+		boolean validate = cmdl.hasOption("v");
+		Document ead = readEadFile(validate);
 
+		if (ead != null) {
 			if (cmdl.hasOption("p")) {
 				println(ead.toString());
 			}
@@ -120,37 +117,48 @@ class Cli extends CliBase {
 		return returnCode;
 	}
 
-	private int validateEadDocument(Document ead) throws IOException, SAXException {
-		print("Validating...");
-
-		SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-		Schema schema = sf.newSchema(new URL("http://www.loc.gov/ead/ead.xsd"));
-		Validator validator = schema.newValidator();
-
-		try {
-			validator.validate(new DOMSource(ead));
-			println("[OK]");
-		} catch (SAXException ex) {
-			println("[Fail]");
-			print(ex.getMessage());
-			return 1;
-		}
-
-		return 0;
-	}
-
-	private Document parseEadFile() {
-		print("Parsing...");
+	private Document readEadFile(boolean validateAgainstSchema) {
+		print("Reading...");
 
 		Document doc;
 		try {
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			dbf.setNamespaceAware(true);
+
+			if (validateAgainstSchema) {
+				SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+				Schema schema = sf.newSchema(new URL("http://www.loc.gov/ead/ead.xsd"));
+				dbf.setSchema(schema);
+			}
+
 			DocumentBuilder db = dbf.newDocumentBuilder();
+
+			db.setErrorHandler(new ErrorHandler() {
+				@Override
+				public void warning(SAXParseException exception) throws SAXException {
+					throw exception;
+				}
+
+				@Override
+				public void error(SAXParseException exception) throws SAXException {
+					throw exception;
+				}
+
+				@Override
+				public void fatalError(SAXParseException exception) throws SAXException {
+					throw exception;
+				}
+			});
 			doc = db.parse(eadFile);
+
 			// http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
 			doc.getDocumentElement().normalize();
+
 			println("[OK]");
+		} catch (SAXParseException spe) {
+			println("[Fail]");
+			println(spe.getMessage() + " (at line " + spe.getLineNumber() + ")");
+			return null;
 		} catch (Exception ex) {
 			println("[Fail]");
 			println(ex.getMessage());
