@@ -23,6 +23,8 @@ package org.goobi.eadmgr;
 
 import org.apache.commons.cli.*;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -31,6 +33,10 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Source;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -43,11 +49,13 @@ class Cli extends CliBase {
 
 	public static final String EAD_200804_XSDL = "ead-200804.xsd";
 	public static final String HTTP_WWW_LOC_GOV_EAD_EAD_XSDL = "http://www.loc.gov/ead/ead.xsd";
+	public static final String SCHLEGEL_XSL = "schlegel.xsl";
 	private static boolean isQuietOption = false;
 	private String[] args;
 	private Options options;
 	private CommandLine cmdl;
 	private File eadFile;
+	private XsltProcessor xsltproc;
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -66,13 +74,29 @@ class Cli extends CliBase {
 		}
 	}
 
+	private void print(Document d) throws TransformerException {
+		xsltproc.transform(new DOMSource(d), new StreamResult(System.out));
+	}
+
 	@Override
 	public void initOptions() {
 		options = new Options();
-		options.addOption("h", "help", false, "Print this usage information");
-		options.addOption("p", "print", false, "Parse given file and print XML structure");
+
+		// mutually exclusive main commands
+		OptionGroup mainOpts = new OptionGroup();
+		mainOpts.addOption(new Option("h", "help", false, "Print this usage information"));
+		mainOpts.addOption(new Option("p", "print", false, "Parse given file and print XML structure"));
+
+		Option idOpt = new Option("id", "extract-volume", true, "Volume ID to extract data for.");
+		idOpt.setRequired(true);
+		mainOpts.addOption(idOpt);
+
+		options.addOptionGroup(mainOpts);
+
+		// additional switches
 		options.addOption("v", "validate", false, "Parse given file and validate XML structure. Exits with error code 1 if validation fails.");
 		options.addOption("q", "quiet", false, "No output to stdout.");
+
 	}
 
 	public void parseArguments(String[] args) throws Exception {
@@ -88,6 +112,8 @@ class Cli extends CliBase {
 
 	@Override
 	public void preProcessing() throws Exception {
+		xsltproc = new XsltProcessor();
+
 		isQuietOption = cmdl.hasOption('q');
 
 		String[] leftOverArgs = cmdl.getArgs();
@@ -114,13 +140,67 @@ class Cli extends CliBase {
 
 		if (ead != null) {
 			if (cmdl.hasOption("p")) {
-				println(ead.toString());
+				print(ead);
+			} else {
+				String volumeId = cmdl.getOptionValue("id");
+				Document vd = extractVolumeData(ead, volumeId);
+				print(vd);
 			}
 		} else {
 			returnCode = 1;
 		}
 
 		return returnCode;
+	}
+
+	private Document extractVolumeData(Document ead, String volumeId) throws Exception {
+		Source extractionProfile = getExtractionProfile(SCHLEGEL_XSL);
+		return extract(ead, extractionProfile, volumeId);
+	}
+
+	private StreamSource getExtractionProfile(String profileFilename) {
+		return new StreamSource(this.getClass().getClassLoader().getResourceAsStream(profileFilename));
+	}
+
+	private Document extract(Document ead, Source extractionProfile, String volumeId)
+			throws Exception {
+		DOMResult r = transform(ead, extractionProfile);
+		Document doc = filter(volumeId, r);
+		return doc;
+	}
+
+	private DOMResult transform(Document ead, Source extractionProfile) throws TransformerException {
+		DOMResult result = new DOMResult();
+		xsltproc.transform(new DOMSource(ead), result, extractionProfile);
+		return result;
+	}
+
+	private Document filter(String volumeId, DOMResult r) throws Exception {
+		XPathProcessor xp = new XPathProcessor();
+		xp.setQueryNode(r.getNode());
+
+		xp.setVariable("volume_id", volumeId);
+		Node volumeNode = xp.query("/multivolume/volumes/volume[id=$volume_id]");
+		if (volumeNode == null) {
+			throw new Exception("No volume with ID " + volumeId);
+		}
+		Node idNode = xp.query("/multivolume/id");
+		Node ownerNode = xp.query("/multivolume/owner");
+
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		Document doc = db.newDocument();
+
+		Element multivolume = doc.createElement("multivolume");
+		Element volumes = doc.createElement("volumes");
+
+		doc.appendChild(multivolume);
+		multivolume.appendChild(doc.adoptNode(idNode.cloneNode(true)));
+		multivolume.appendChild(doc.adoptNode(ownerNode.cloneNode(true)));
+		multivolume.appendChild(volumes);
+		volumes.appendChild(doc.adoptNode(volumeNode.cloneNode(true)));
+
+		return doc;
 	}
 
 	private Document readEadFile(boolean validateAgainstSchema) {
