@@ -62,9 +62,9 @@
                 <xsl:value-of
                         select="ead:c[attribute::level='item'][1]/ead:did/ead:container[attribute::type='folder']"/>
             </xsl:element>
-        </xsl:element>
-        <xsl:element name="letters">
-            <xsl:apply-templates select="ead:c[attribute::level='item']"/>
+            <xsl:element name="elements">
+                <xsl:apply-templates select="ead:c[attribute::level='item']"/>
+            </xsl:element>
         </xsl:element>
     </xsl:template>
 
