@@ -43,19 +43,27 @@ import javax.xml.validation.SchemaFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 class Cli extends CliBase {
 
 	public static final String EAD_200804_XSDL = "ead-200804.xsd";
 	public static final String HTTP_WWW_LOC_GOV_EAD_EAD_XSDL = "http://www.loc.gov/ead/ead.xsd";
 	public static final String SCHLEGEL_XSL = "schlegel.xsl";
-	private static boolean isQuietOption = false;
 	private String[] args;
 	private Options options;
 	private CommandLine cmdl;
 	private File eadFile;
 	private XsltProcessor xsltproc;
+	private String volumeId;
+	private boolean isDryRun;
+	private boolean isHelpRequested;
+	private boolean isValidateOption;
+	private boolean isVerbose;
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -63,13 +71,13 @@ class Cli extends CliBase {
 	}
 
 	private void println(String msg) {
-		if (!isQuietOption) {
+		if (isVerbose) {
 			System.out.println(msg);
 		}
 	}
 
 	private void print(String msg) {
-		if (!isQuietOption) {
+		if (isVerbose) {
 			System.out.print(msg);
 		}
 	}
@@ -83,38 +91,42 @@ class Cli extends CliBase {
 		options = new Options();
 
 		// mutually exclusive main commands
-		OptionGroup mainOpts = new OptionGroup();
-		mainOpts.addOption(new Option("h", "help", false, "Print this usage information"));
-		mainOpts.addOption(new Option("p", "print", false, "Parse given file and print XML structure"));
-
-		Option idOpt = new Option("id", "extract-volume", true, "Volume ID to extract data for.");
-		idOpt.setRequired(true);
-		mainOpts.addOption(idOpt);
-
-		options.addOptionGroup(mainOpts);
+		OptionGroup mainCommands = new OptionGroup();
+		mainCommands.addOption(new Option("h", "help", false, "Print this usage information"));
+		mainCommands.addOption(new Option("c", "create-process", true,
+				"Extracted data for given volume ID as process creation message to configured ActiveMQ server."));
+		options.addOptionGroup(mainCommands);
 
 		// additional switches
-		options.addOption("v", "validate", false, "Parse given file and validate XML structure. Exits with error code 1 if validation fails.");
-		options.addOption("q", "quiet", false, "No output to stdout.");
-
+		options.addOption(OptionBuilder
+				.withLongOpt("validate")
+				.withDescription("Validate XML structure while parsing the EAD document. Exits with error code 1 if validation fails.").create());
+		options.addOption(OptionBuilder
+				.withLongOpt("dry-run")
+				.withDescription("Print volume information instead of sending it.").create());
+		options.addOption("v", "verbose", false, "Be verbose about what is going on.");
 	}
 
 	public void parseArguments(String[] args) throws Exception {
 		CommandLineParser parser = new BasicParser();
 		this.args = args;
 		this.cmdl = parser.parse(options, args);
+
+		isDryRun = cmdl.hasOption("dry-run");
+		isHelpRequested = cmdl.hasOption('h');
+		isValidateOption = cmdl.hasOption("validate");
+		isVerbose = cmdl.hasOption('v');
+		volumeId = cmdl.getOptionValue('c');
 	}
 
 	@Override
 	public boolean validateArguments() {
-		return ((args.length > 0) && (!cmdl.hasOption("h")));
+		return ((args.length > 0) && (!isHelpRequested));
 	}
 
 	@Override
 	public void preProcessing() throws Exception {
 		xsltproc = new XsltProcessor();
-
-		isQuietOption = cmdl.hasOption('q');
 
 		String[] leftOverArgs = cmdl.getArgs();
 		if (leftOverArgs.length == 0) {
@@ -135,16 +147,16 @@ class Cli extends CliBase {
 
 		int returnCode = 0;
 
-		boolean validate = cmdl.hasOption("v");
-		Document ead = readEadFile(validate);
+		Document ead = readEadFile(isValidateOption);
 
 		if (ead != null) {
-			if (cmdl.hasOption("p")) {
-				print(ead);
-			} else {
-				String volumeId = cmdl.getOptionValue("id");
+			if (volumeId != null) {
 				Document vd = extractVolumeData(ead, volumeId);
-				print(vd);
+				if (isDryRun) {
+					print(vd);
+				} else {
+					send(vd);
+				}
 			}
 		} else {
 			returnCode = 1;
@@ -153,7 +165,42 @@ class Cli extends CliBase {
 		return returnCode;
 	}
 
+	private void send(Document vd) throws Exception {
+		print("Sending...");
+
+		try {
+			Map<String, Object> m = new HashMap();
+			m.put("id", String.valueOf(java.util.UUID.randomUUID()));
+			m.put("template", "Schlegel"); // configurable value ?
+			m.put("docType", "multivolume"); // configurable value ?
+
+
+			ArrayList<String> collections = new ArrayList<String>();
+			collections.add("Projekt: Briefedition August Wilhelm Schlegel"); // configurable value(s) ?
+			m.put("collections", collections);
+
+			m.put("xml", String.valueOf(serialize(vd)));
+
+			GoobiMQConnection conn = new GoobiMQConnection();
+			conn.send(m);
+			conn.close();
+
+			println("[OK]");
+		} catch (Exception ex) {
+			println("[Fail]");
+			throw ex;
+		}
+	}
+
+	private Object serialize(Document vd) throws TransformerException {
+		StringWriter sw = new StringWriter();
+		StreamResult out = new StreamResult(sw);
+		xsltproc.transform(new DOMSource(vd), out);
+		return sw.toString();
+	}
+
 	private Document extractVolumeData(Document ead, String volumeId) throws Exception {
+		println("Extract data using extraction profile " + SCHLEGEL_XSL);
 		Source extractionProfile = getExtractionProfile(SCHLEGEL_XSL);
 		return extract(ead, extractionProfile, volumeId);
 	}
