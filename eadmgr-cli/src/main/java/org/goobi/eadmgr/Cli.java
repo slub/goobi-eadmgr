@@ -45,20 +45,29 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URL;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.apache.activemq.ActiveMQConnection.DEFAULT_BROKER_URL;
 
 class Cli extends CliBase {
 
 	public static final String EAD_200804_XSDL = "ead-200804.xsd";
 	public static final String HTTP_WWW_LOC_GOV_EAD_EAD_XSDL = "http://www.loc.gov/ead/ead.xsd";
 	public static final String SCHLEGEL_XSL = "schlegel.xsl";
+	public static final String DEFAULT_PROCESS_TEMPLATE = "Schlegel";
+	public static final String DEFAULT_DOCTYPE = "multivolume";
+	public static final String ACTIVEMQ_CONFIGURING_URL = "http://activemq.apache.org/cms/configuring.html";
 	private String[] args;
 	private Options options;
 	private CommandLine cmdl;
 	private File eadFile;
 	private XsltProcessor xsltproc;
+	private String brokerUrl;
+	private String doctype;
+	private String template;
 	private String volumeId;
 	private boolean isDryRun;
 	private boolean isHelpRequested;
@@ -105,6 +114,10 @@ class Cli extends CliBase {
 				.withLongOpt("dry-run")
 				.withDescription("Print volume information instead of sending it.").create());
 		options.addOption("v", "verbose", false, "Be verbose about what is going on.");
+		options.addOption("u", "url", true, MessageFormat.format("ActiveMQ Broker URL. If not given the broker is contacted at \"{0}\".\n" +
+				"Note that using the failover protocol will block the program forever if the ActiveMQ host is not reachable unless you specify the \"timeout\" parameter in the URL. See {1} for more information.", DEFAULT_BROKER_URL, ACTIVEMQ_CONFIGURING_URL));
+		options.addOption("t", "template", true, MessageFormat.format("Goobi Process Template name. If not given \"{0}\" is used.", DEFAULT_PROCESS_TEMPLATE));
+		options.addOption("d", "doctype", true, MessageFormat.format("Goobi Doctype name. If not given \"{0}\" is used.", DEFAULT_DOCTYPE));
 	}
 
 	public void parseArguments(String[] args) throws Exception {
@@ -112,10 +125,13 @@ class Cli extends CliBase {
 		this.args = args;
 		this.cmdl = parser.parse(options, args);
 
+		brokerUrl = cmdl.getOptionValue("u", DEFAULT_BROKER_URL);
+		doctype = cmdl.getOptionValue("d", DEFAULT_DOCTYPE);
 		isDryRun = cmdl.hasOption("dry-run");
 		isHelpRequested = cmdl.hasOption('h');
 		isValidateOption = cmdl.hasOption("validate");
 		isVerbose = cmdl.hasOption('v');
+		template = cmdl.getOptionValue("t", DEFAULT_PROCESS_TEMPLATE);
 		volumeId = cmdl.getOptionValue('c');
 	}
 
@@ -155,7 +171,7 @@ class Cli extends CliBase {
 				if (isDryRun) {
 					print(vd);
 				} else {
-					send(vd);
+					send(vd, template, doctype, brokerUrl);
 				}
 			}
 		} else {
@@ -165,15 +181,14 @@ class Cli extends CliBase {
 		return returnCode;
 	}
 
-	private void send(Document vd) throws Exception {
+	private void send(Document vd, String template, String doctype, String brokerUrl) throws Exception {
 		print("Sending...");
 
 		try {
 			Map<String, Object> m = new HashMap();
 			m.put("id", String.valueOf(java.util.UUID.randomUUID()));
-			m.put("template", "Schlegel"); // configurable value ?
-			m.put("docType", "multivolume"); // configurable value ?
-
+			m.put("template", template);
+			m.put("docType", doctype);
 
 			ArrayList<String> collections = new ArrayList<String>();
 			collections.add("Projekt: Briefedition August Wilhelm Schlegel"); // configurable value(s) ?
@@ -181,7 +196,7 @@ class Cli extends CliBase {
 
 			m.put("xml", String.valueOf(serialize(vd)));
 
-			GoobiMQConnection conn = new GoobiMQConnection();
+			GoobiMQConnection conn = new GoobiMQConnection(brokerUrl);
 			conn.send(m);
 			conn.close();
 
@@ -325,6 +340,7 @@ class Cli extends CliBase {
 	public void printUsageInformation() {
 		String PROMPT_NAME = "eadmgr [Options] [File]";
 		HelpFormatter formatter = new HelpFormatter();
+		formatter.setWidth(120);
 		formatter.printHelp(PROMPT_NAME, options);
 	}
 

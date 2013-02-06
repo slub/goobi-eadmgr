@@ -29,26 +29,28 @@ import java.util.Map;
 
 public class GoobiMQConnection {
 
-	// URL of the JMS server. DEFAULT_BROKER_URL will just mean
-	// that JMS server is on localhost
-	private static String defaultBrokerUrl = ActiveMQConnection.DEFAULT_BROKER_URL;
 	// Name of the queue we will be sending messages to
-	private static String subject = "GoobiProduction.createNewProcessWithLogicalStructureData.Queue";
+	private static String SUBJECT_QUEUE = "GoobiProduction.createNewProcessWithLogicalStructureData.Queue";
 	private Connection connection;
 	private Session session;
 	private MessageProducer producer;
 
 	public GoobiMQConnection() throws JMSException {
-		initActiveMqConnection(defaultBrokerUrl);
+		// JMS server is on localhost
+		initActiveMqConnection(ActiveMQConnection.DEFAULT_BROKER_URL, SUBJECT_QUEUE);
 	}
 
-	private void initActiveMqConnection(String brokerUrl) throws JMSException {
+	public GoobiMQConnection(String brokerUrl) throws JMSException {
+		initActiveMqConnection(brokerUrl, SUBJECT_QUEUE);
+	}
+
+	private void initActiveMqConnection(String brokerUrl, String subjectQueue) throws JMSException {
 		ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(brokerUrl);
 		connection = connectionFactory.createConnection();
 		connection.start();
 
 		session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-		Destination destination = session.createQueue(subject);
+		Destination destination = session.createQueue(subjectQueue);
 		producer = session.createProducer(destination);
 	}
 
@@ -59,13 +61,10 @@ public class GoobiMQConnection {
 	}
 
 	public void send(Map<String, Object> message) throws JMSException {
-
 		MapMessage mapMessage = session.createMapMessage();
-
 		for (String key : message.keySet()) {
 			mapMessage.setObject(key, message.get(key));
 		}
-
 		producer.send(mapMessage);
 	}
 
