@@ -46,9 +46,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URL;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.apache.activemq.ActiveMQConnection.DEFAULT_BROKER_URL;
 
@@ -73,6 +71,7 @@ class Cli extends CliBase {
 	private boolean isHelpRequested;
 	private boolean isValidateOption;
 	private boolean isVerbose;
+	private Collection<String> collections;
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -118,6 +117,11 @@ class Cli extends CliBase {
 				"Note that using the failover protocol will block the program forever if the ActiveMQ host is not reachable unless you specify the \"timeout\" parameter in the URL. See {1} for more information.", DEFAULT_BROKER_URL, ACTIVEMQ_CONFIGURING_URL));
 		options.addOption("t", "template", true, MessageFormat.format("Goobi Process Template name. If not given \"{0}\" is used.", DEFAULT_PROCESS_TEMPLATE));
 		options.addOption("d", "doctype", true, MessageFormat.format("Goobi Doctype name. If not given \"{0}\" is used.", DEFAULT_DOCTYPE));
+		options.addOption(OptionBuilder
+				.withLongOpt("collections")
+				.hasArg()
+				.withDescription("Comma separated list of names of collections to which the newly created process should be assigned.")
+				.create());
 	}
 
 	public void parseArguments(String[] args) throws Exception {
@@ -133,6 +137,17 @@ class Cli extends CliBase {
 		isVerbose = cmdl.hasOption('v');
 		template = cmdl.getOptionValue("t", DEFAULT_PROCESS_TEMPLATE);
 		volumeId = cmdl.getOptionValue('c');
+
+		collections = new ArrayList<String>();
+		String optVal = cmdl.getOptionValue("collections");
+		if (optVal != null) {
+			collections.addAll(Arrays.asList(optVal.split(",")));
+		}
+
+		if (cmdl.hasOption('c') && (collections.isEmpty())) {
+			throw new Exception("Option 'create-process' requires option 'collections' to be properly specified.");
+		}
+
 	}
 
 	@Override
@@ -171,7 +186,7 @@ class Cli extends CliBase {
 				if (isDryRun) {
 					print(vd);
 				} else {
-					send(vd, template, doctype, brokerUrl);
+					send(vd, template, doctype, brokerUrl, collections);
 				}
 			}
 		} else {
@@ -181,7 +196,7 @@ class Cli extends CliBase {
 		return returnCode;
 	}
 
-	private void send(Document vd, String template, String doctype, String brokerUrl) throws Exception {
+	private void send(Document vd, String template, String doctype, String brokerUrl, Collection<String> collections) throws Exception {
 		print("Sending...");
 
 		try {
@@ -189,11 +204,7 @@ class Cli extends CliBase {
 			m.put("id", String.valueOf(java.util.UUID.randomUUID()));
 			m.put("template", template);
 			m.put("docType", doctype);
-
-			ArrayList<String> collections = new ArrayList<String>();
-			collections.add("Projekt: Briefedition August Wilhelm Schlegel"); // configurable value(s) ?
 			m.put("collections", collections);
-
 			m.put("xml", String.valueOf(serialize(vd)));
 
 			GoobiMQConnection conn = new GoobiMQConnection(brokerUrl);
