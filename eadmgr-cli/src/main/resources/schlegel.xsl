@@ -31,6 +31,9 @@
             <xsl:element name="id">
                 <xsl:value-of select="@id"/>
             </xsl:element>
+            <xsl:element name="title">
+                <xsl:value-of select="ead:did/ead:unittitle"/>
+            </xsl:element>
 
             <xsl:element name="owner">
                 <xsl:element name="id">
