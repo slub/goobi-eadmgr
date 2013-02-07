@@ -38,7 +38,7 @@ public abstract class CliBase {
 
 	/**
 	 * Implement parsing of command line arguments here.
-	 *
+	 * <p/>
 	 * Consider storing parsing result in some member variable, so that the state can be accessed by following
 	 * processing steps.
 	 *
@@ -62,7 +62,7 @@ public abstract class CliBase {
 	/**
 	 * Implement actual argument processing here.
 	 *
-	 * @return Determined programm exit code.
+	 * @return Determined program exit code.
 	 */
 	public abstract int processing() throws Exception;
 
@@ -75,7 +75,7 @@ public abstract class CliBase {
 	/**
 	 * Handle any Exception that might break the workflow.
 	 *
-	 * @param ex The Exception that actaully occured.
+	 * @param ex The Exception that actually occurred.
 	 */
 	public abstract void handleException(Exception ex);
 
@@ -87,8 +87,8 @@ public abstract class CliBase {
 	/**
 	 * Run CLI processing workflow with given command line options.
 	 *
-	 * @param args Command line options that have been passed to the programm.
-	 * @return Programm return code. The exit code is determiend by the <code>processing()</code> method. However,
+	 * @param args Command line options that have been passed to the program.
+	 * @return Program return code. The exit code is determined by the <code>processing()</code> method. However,
 	 *         if an Exception occurs, an exit code of 1 is returned indicating some failure.
 	 */
 	public int run(String[] args) {
