@@ -22,6 +22,8 @@
 package org.goobi.eadmgr;
 
 import org.apache.commons.cli.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -58,6 +60,7 @@ class Cli extends CliBase {
 	public static final String DEFAULT_PROCESS_TEMPLATE = "Schlegel";
 	public static final String DEFAULT_DOCTYPE = "multivolume";
 	public static final String ACTIVEMQ_CONFIGURING_URL = "http://activemq.apache.org/cms/configuring.html";
+	public static final String PROMPT_HINT = "Try 'eadmgr -h' for more information.";
 	private String[] args;
 	private Options options;
 	private CommandLine cmdl;
@@ -71,6 +74,7 @@ class Cli extends CliBase {
 	private boolean isValidateOption;
 	private boolean isVerbose;
 	private Collection<String> collections;
+	private Logger logger = LoggerFactory.getLogger(Cli.class);
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -78,15 +82,7 @@ class Cli extends CliBase {
 	}
 
 	private void println(String msg) {
-		if (isVerbose) {
-			System.out.println(msg);
-		}
-	}
-
-	private void print(String msg) {
-		if (isVerbose) {
-			System.out.print(msg);
-		}
+		System.out.println(msg);
 	}
 
 	private void print(Document d) throws TransformerException {
@@ -175,7 +171,7 @@ class Cli extends CliBase {
 			return 0;
 		}
 
-		println("Processing " + eadFile.getAbsolutePath());
+		logger.info("Processing " + eadFile.getAbsolutePath());
 
 		int returnCode = 0;
 
@@ -198,25 +194,18 @@ class Cli extends CliBase {
 	}
 
 	private void send(Document vd, String template, String doctype, String brokerUrl, Collection<String> collections) throws Exception {
-		print("Sending...");
+		logger.info("Sending...");
 
-		try {
-			Map<String, Object> m = new HashMap();
-			m.put("id", String.valueOf(java.util.UUID.randomUUID()));
-			m.put("template", template);
-			m.put("docType", doctype);
-			m.put("collections", collections);
-			m.put("xml", String.valueOf(serialize(vd)));
+		Map<String, Object> m = new HashMap();
+		m.put("id", String.valueOf(java.util.UUID.randomUUID()));
+		m.put("template", template);
+		m.put("docType", doctype);
+		m.put("collections", collections);
+		m.put("xml", String.valueOf(serialize(vd)));
 
-			GoobiMQConnection conn = new GoobiMQConnection(brokerUrl);
-			conn.send(m);
-			conn.close();
-
-			println("[OK]");
-		} catch (Exception ex) {
-			println("[Fail]");
-			throw ex;
-		}
+		GoobiMQConnection conn = new GoobiMQConnection(brokerUrl);
+		conn.send(m);
+		conn.close();
 	}
 
 	private Object serialize(Document vd) throws TransformerException {
@@ -228,7 +217,7 @@ class Cli extends CliBase {
 	}
 
 	private Document extractVolumeData(Document ead, String volumeId) throws Exception {
-		println("Extract data using extraction profile " + SCHLEGEL_XSL);
+		logger.info("Extract data using extraction profile " + SCHLEGEL_XSL);
 		Source extractionProfile = getExtractionProfile(SCHLEGEL_XSL);
 		return extract(ead, extractionProfile, volumeId);
 	}
@@ -282,7 +271,7 @@ class Cli extends CliBase {
 	}
 
 	private Document readEadFile(boolean validateAgainstSchema) {
-		print("Reading...");
+		logger.info("Reading...");
 
 		Document doc;
 		try {
@@ -318,14 +307,11 @@ class Cli extends CliBase {
 			// http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
 			doc.getDocumentElement().normalize();
 
-			println("[OK]");
 		} catch (SAXParseException spe) {
-			println("[Fail]");
-			println(spe.getMessage() + " (at line " + spe.getLineNumber() + ")");
+			logger.error(spe.getMessage() + " (at line " + spe.getLineNumber() + ")");
 			return null;
 		} catch (Exception ex) {
-			println("[Fail]");
-			println(ex.getMessage());
+			logger.error(ex.getMessage());
 			return null;
 		}
 
@@ -361,8 +347,8 @@ class Cli extends CliBase {
 
 	@Override
 	public void handleException(Exception ex) {
-		String PROMPT_HINT = "Try 'eadmgr -h' for more information.";
-		println("Error: " + ex.getMessage() + "\n" + PROMPT_HINT);
+		logger.error(ex.getMessage());
+		println(PROMPT_HINT);
 	}
 }
 
