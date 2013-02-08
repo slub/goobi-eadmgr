@@ -27,7 +27,7 @@
 
 
     <xsl:template match="//ead:archdesc">
-        <xsl:element name="multivolume">
+        <xsl:element name="convolute">
             <xsl:element name="id">
                 <xsl:value-of select="@id"/>
             </xsl:element>
@@ -44,14 +44,14 @@
                 </xsl:element>
             </xsl:element>
 
-            <xsl:element name="volumes">
+            <xsl:element name="folders">
                 <xsl:apply-templates select="ead:dsc/ead:c[attribute::level='class']"/>
             </xsl:element>
         </xsl:element>
     </xsl:template>
 
     <xsl:template match="ead:c[attribute::level='class']">
-        <xsl:element name="volume">
+        <xsl:element name="folder">
             <xsl:element name="id">
                 <xsl:value-of select="@id"/>
             </xsl:element>

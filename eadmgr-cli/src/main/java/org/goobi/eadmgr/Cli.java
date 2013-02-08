@@ -66,7 +66,7 @@ class Cli extends CliBase {
 	private String brokerUrl;
 	private String doctype;
 	private String template;
-	private String volumeId;
+	private String folderId;
 	private boolean isDryRun;
 	private boolean isHelpRequested;
 	private boolean isValidateOption;
@@ -102,7 +102,7 @@ class Cli extends CliBase {
 		OptionGroup mainCommands = new OptionGroup();
 		mainCommands.addOption(new Option("h", "help", false, "Print this usage information"));
 		mainCommands.addOption(new Option("c", "create-process", true,
-				"Extracted data for given volume ID as process creation message to configured ActiveMQ server."));
+				"Extracted data for given folder ID as process creation message to configured ActiveMQ server."));
 		options.addOptionGroup(mainCommands);
 
 		// additional switches
@@ -111,7 +111,7 @@ class Cli extends CliBase {
 				.withDescription("Validate XML structure while parsing the EAD document. Exits with error code 1 if validation fails.").create());
 		options.addOption(OptionBuilder
 				.withLongOpt("dry-run")
-				.withDescription("Print volume information instead of sending it.").create());
+				.withDescription("Print folder information instead of sending it.").create());
 		options.addOption("v", "verbose", false, "Be verbose about what is going on.");
 		options.addOption("u", "url", true, MessageFormat.format("ActiveMQ Broker URL. If not given the broker is contacted at \"{0}\".\n" +
 				"Note that using the failover protocol will block the program forever if the ActiveMQ host is not reachable unless you specify the \"timeout\" parameter in the URL. See {1} for more information.", DEFAULT_BROKER_URL, ACTIVEMQ_CONFIGURING_URL));
@@ -136,7 +136,7 @@ class Cli extends CliBase {
 		isValidateOption = cmdl.hasOption("validate");
 		isVerbose = cmdl.hasOption('v');
 		template = cmdl.getOptionValue("t", DEFAULT_PROCESS_TEMPLATE);
-		volumeId = cmdl.getOptionValue('c');
+		folderId = cmdl.getOptionValue('c');
 
 		collections = new ArrayList<String>();
 		String optVal = cmdl.getOptionValue("collections");
@@ -181,8 +181,8 @@ class Cli extends CliBase {
 		Document ead = readEadFile(isValidateOption);
 
 		if (ead != null) {
-			if (volumeId != null) {
-				Document vd = extractVolumeData(ead, volumeId);
+			if (folderId != null) {
+				Document vd = extractVolumeData(ead, folderId);
 				if (isDryRun) {
 					print(vd);
 				} else {
@@ -244,34 +244,35 @@ class Cli extends CliBase {
 
 	private DOMResult transform(Document ead, Source extractionProfile) throws TransformerException {
 		DOMResult result = new DOMResult();
+		XsltProcessor xsltproc = new XsltProcessor();
 		xsltproc.transform(new DOMSource(ead), result, extractionProfile);
 		return result;
 	}
 
-	private Document filter(String volumeId, DOMResult r) throws Exception {
+	private Document filter(String folderId, DOMResult r) throws Exception {
 		XPathProcessor xp = new XPathProcessor();
 		xp.setQueryNode(r.getNode());
 
-		xp.setVariable("volume_id", volumeId);
-		Node volumeNode = xp.query("/multivolume/volumes/volume[id=$volume_id]");
-		if (volumeNode == null) {
-			throw new Exception("No volume with ID " + volumeId);
+		xp.setVariable("folder_id", folderId);
+		Node folderNode = xp.query("/convolute/folders/folder[id=$folder_id]");
+		if (folderNode == null) {
+			throw new Exception("No folder with ID " + folderId);
 		}
-		Node idNode = xp.query("/multivolume/id");
-		Node ownerNode = xp.query("/multivolume/owner");
+		Node idNode = xp.query("/convolute/id");
+		Node ownerNode = xp.query("/convolute/owner");
 
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
 		Document doc = db.newDocument();
 
-		Element multivolume = doc.createElement("multivolume");
-		Element volumes = doc.createElement("volumes");
+		Element convolute = doc.createElement("convolute");
+		Element folders = doc.createElement("folders");
 
-		doc.appendChild(multivolume);
-		multivolume.appendChild(doc.adoptNode(idNode.cloneNode(true)));
-		multivolume.appendChild(doc.adoptNode(ownerNode.cloneNode(true)));
-		multivolume.appendChild(volumes);
-		volumes.appendChild(doc.adoptNode(volumeNode.cloneNode(true)));
+		doc.appendChild(convolute);
+		convolute.appendChild(doc.adoptNode(idNode.cloneNode(true)));
+		convolute.appendChild(doc.adoptNode(ownerNode.cloneNode(true)));
+		convolute.appendChild(folders);
+		folders.appendChild(doc.adoptNode(folderNode.cloneNode(true)));
 
 		return doc;
 	}
