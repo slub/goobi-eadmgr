@@ -62,7 +62,6 @@ class Cli extends CliBase {
 	private Options options;
 	private CommandLine cmdl;
 	private File eadFile;
-	private XsltProcessor xsltproc;
 	private String brokerUrl;
 	private String doctype;
 	private String template;
@@ -91,6 +90,7 @@ class Cli extends CliBase {
 	}
 
 	private void print(Document d) throws TransformerException {
+		XsltProcessor xsltproc = new XsltProcessor();
 		xsltproc.transform(new DOMSource(d), new StreamResult(System.out));
 	}
 
@@ -129,10 +129,15 @@ class Cli extends CliBase {
 		this.args = args;
 		this.cmdl = parser.parse(options, args);
 
+		isHelpRequested = cmdl.hasOption('h');
+		if (isHelpRequested) {
+			// stop parsing the rest of the arguments if user requests help
+			return;
+		}
+
 		brokerUrl = cmdl.getOptionValue("u", DEFAULT_BROKER_URL);
 		doctype = cmdl.getOptionValue("d", DEFAULT_DOCTYPE);
 		isDryRun = cmdl.hasOption("dry-run");
-		isHelpRequested = cmdl.hasOption('h');
 		isValidateOption = cmdl.hasOption("validate");
 		isVerbose = cmdl.hasOption('v');
 		template = cmdl.getOptionValue("t", DEFAULT_PROCESS_TEMPLATE);
@@ -147,18 +152,6 @@ class Cli extends CliBase {
 		if (cmdl.hasOption('c') && (collections.isEmpty())) {
 			throw new Exception("Option 'create-process' requires option 'collections' to be properly specified.");
 		}
-
-	}
-
-	@Override
-	public boolean validateArguments() {
-		return ((args.length > 0) && (!isHelpRequested));
-	}
-
-	@Override
-	public void preProcessing() throws Exception {
-		xsltproc = new XsltProcessor();
-
 		String[] leftOverArgs = cmdl.getArgs();
 		if (leftOverArgs.length == 0) {
 			throw new Exception("No filename given.");
@@ -166,14 +159,22 @@ class Cli extends CliBase {
 		if (leftOverArgs.length > 1) {
 			throw new Exception("Only one filename allowed.");
 		}
+
 		this.eadFile = new File(leftOverArgs[0]);
 		if (!eadFile.exists() || !eadFile.canRead() || !eadFile.isFile()) {
 			throw new Exception("Cannot read " + eadFile.getAbsolutePath());
 		}
+
 	}
 
 	@Override
 	public int processing() throws Exception {
+
+		if ((isHelpRequested) || (args.length == 0)) {
+			printUsageInformation();
+			return 0;
+		}
+
 		println("Processing " + eadFile.getAbsolutePath());
 
 		int returnCode = 0;
@@ -221,6 +222,7 @@ class Cli extends CliBase {
 	private Object serialize(Document vd) throws TransformerException {
 		StringWriter sw = new StringWriter();
 		StreamResult out = new StreamResult(sw);
+		XsltProcessor xsltproc = new XsltProcessor();
 		xsltproc.transform(new DOMSource(vd), out);
 		return sw.toString();
 	}
@@ -348,8 +350,7 @@ class Cli extends CliBase {
 		return result;
 	}
 
-	@Override
-	public void printUsageInformation() {
+	private void printUsageInformation() {
 		String PROMPT_NAME = "eadmgr [Options] [File]";
 		HelpFormatter formatter = new HelpFormatter();
 		formatter.setWidth(120);

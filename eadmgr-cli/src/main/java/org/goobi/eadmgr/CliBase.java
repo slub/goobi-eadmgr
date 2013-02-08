@@ -26,8 +26,7 @@ package org.goobi.eadmgr;
  * <p/>
  * 1. Initialize options.
  * 2. Parsing command line arguments.
- * 3. Checking, if arguments are all valid, or if help is requested. Print Usage information if necessary.
- * 4. Do pre-processing, processing and post-processing.
+ * 3. Do pre-processing, processing and post-processing.
  */
 public abstract class CliBase {
 
@@ -45,13 +44,6 @@ public abstract class CliBase {
 	 * @param args Command line arguments.
 	 */
 	public abstract void parseArguments(String[] args) throws Exception;
-
-	/**
-	 * Implement validation of command line arguments here.
-	 *
-	 * @return True, if all arguments are correct. False, otherwise.
-	 */
-	public abstract boolean validateArguments();
 
 	/**
 	 * Implement pre-processing steps here, if necessary.
@@ -80,11 +72,6 @@ public abstract class CliBase {
 	public abstract void handleException(Exception ex);
 
 	/**
-	 * Print usage information.
-	 */
-	public abstract void printUsageInformation();
-
-	/**
 	 * Run CLI processing workflow with given command line options.
 	 *
 	 * @param args Command line options that have been passed to the program.
@@ -96,13 +83,9 @@ public abstract class CliBase {
 		initOptions();
 		try {
 			parseArguments(args);
-			if (validateArguments()) {
-				preProcessing();
-				exitCode = processing();
-				postProcessing();
-			} else {
-				printUsageInformation();
-			}
+			preProcessing();
+			exitCode = processing();
+			postProcessing();
 		} catch (Exception ex) {
 			handleException(ex);
 			exitCode = 1;
