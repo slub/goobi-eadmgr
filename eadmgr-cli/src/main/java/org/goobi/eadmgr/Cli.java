@@ -74,7 +74,7 @@ class Cli extends CliBase {
 	private boolean isValidateOption;
 	private boolean isVerbose;
 	private Collection<String> collections;
-	private Logger logger = LoggerFactory.getLogger(Cli.class);
+	private Logger logger;
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -131,11 +131,15 @@ class Cli extends CliBase {
 			return;
 		}
 
+		isVerbose = cmdl.hasOption('v');
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", isVerbose ? "TRACE" : "WARN");
+		logger = LoggerFactory.getLogger(Cli.class);
+
 		brokerUrl = cmdl.getOptionValue("u", DEFAULT_BROKER_URL);
 		doctype = cmdl.getOptionValue("d", DEFAULT_DOCTYPE);
 		isDryRun = cmdl.hasOption("dry-run");
 		isValidateOption = cmdl.hasOption("validate");
-		isVerbose = cmdl.hasOption('v');
+
 		template = cmdl.getOptionValue("t", DEFAULT_PROCESS_TEMPLATE);
 		folderId = cmdl.getOptionValue('c');
 
@@ -347,7 +351,11 @@ class Cli extends CliBase {
 
 	@Override
 	public void handleException(Exception ex) {
-		logger.error(ex.getMessage());
+		if (logger != null) {
+			logger.error(ex.getMessage());
+		} else {
+			println(ex.getMessage());
+		}
 		println(PROMPT_HINT);
 	}
 }
