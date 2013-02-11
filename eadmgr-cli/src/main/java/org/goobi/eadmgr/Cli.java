@@ -261,6 +261,7 @@ class Cli extends CliBase {
 			throw new Exception("No folder with ID " + folderId);
 		}
 		Node idNode = xp.query("/convolute/id");
+		Node titleNode = xp.query("/convolute/title");
 		Node ownerNode = xp.query("/convolute/owner");
 
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -272,6 +273,7 @@ class Cli extends CliBase {
 
 		doc.appendChild(convolute);
 		convolute.appendChild(doc.adoptNode(idNode.cloneNode(true)));
+		convolute.appendChild(doc.adoptNode(titleNode.cloneNode(true)));
 		convolute.appendChild(doc.adoptNode(ownerNode.cloneNode(true)));
 		convolute.appendChild(folders);
 		folders.appendChild(doc.adoptNode(folderNode.cloneNode(true)));
