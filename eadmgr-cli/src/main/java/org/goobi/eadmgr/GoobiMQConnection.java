@@ -21,7 +21,6 @@
  */
 package org.goobi.eadmgr;
 
-import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,21 +30,14 @@ import java.util.Map;
 
 public class GoobiMQConnection {
 
-	// Name of the queue we will be sending messages to
-	private static String SUBJECT_QUEUE = "GoobiProduction.createNewProcessWithLogicalStructureData.Queue";
 	private Connection connection;
 	private Session session;
 	private MessageProducer producer;
 
 	private Logger logger = LoggerFactory.getLogger(GoobiMQConnection.class);
 
-	public GoobiMQConnection() throws JMSException {
-		// JMS server is on localhost
-		initActiveMqConnection(ActiveMQConnection.DEFAULT_BROKER_URL, SUBJECT_QUEUE);
-	}
-
-	public GoobiMQConnection(String brokerUrl) throws JMSException {
-		initActiveMqConnection(brokerUrl, SUBJECT_QUEUE);
+	public GoobiMQConnection(String brokerUrl, String subjectQueue) throws JMSException {
+		initActiveMqConnection(brokerUrl, subjectQueue);
 	}
 
 	private void initActiveMqConnection(String brokerUrl, String subjectQueue) throws JMSException {

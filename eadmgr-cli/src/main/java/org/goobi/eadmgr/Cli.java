@@ -59,6 +59,7 @@ class Cli extends CliBase {
 	public static final String SCHLEGEL_XSL = "schlegel.xsl";
 	public static final String DEFAULT_PROCESS_TEMPLATE = "Schlegel";
 	public static final String DEFAULT_DOCTYPE = "multivolume";
+	public static final String DEFAULT_SUBJECT_QUEUE = "GoobiProduction.createNewProcessWithLogicalStructureData.Queue";
 	public static final String ACTIVEMQ_CONFIGURING_URL = "http://activemq.apache.org/cms/configuring.html";
 	public static final String PROMPT_HINT = "Try 'eadmgr -h' for more information.";
 	private String[] args;
@@ -75,6 +76,7 @@ class Cli extends CliBase {
 	private boolean isVerbose;
 	private Collection<String> collections;
 	private Logger logger;
+	private String subjectQueue;
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -111,6 +113,7 @@ class Cli extends CliBase {
 		options.addOption("v", "verbose", false, "Be verbose about what is going on.");
 		options.addOption("u", "url", true, MessageFormat.format("ActiveMQ Broker URL. If not given the broker is contacted at \"{0}\".\n" +
 				"Note that using the failover protocol will block the program forever if the ActiveMQ host is not reachable unless you specify the \"timeout\" parameter in the URL. See {1} for more information.", DEFAULT_BROKER_URL, ACTIVEMQ_CONFIGURING_URL));
+		options.addOption("q", "queue", true, MessageFormat.format("ActiveMQ Subject Queue. If not given messages get enqueue at \"{0}\".", DEFAULT_SUBJECT_QUEUE));
 		options.addOption("t", "template", true, MessageFormat.format("Goobi Process Template name. If not given \"{0}\" is used.", DEFAULT_PROCESS_TEMPLATE));
 		options.addOption("d", "doctype", true, MessageFormat.format("Goobi Doctype name. If not given \"{0}\" is used.", DEFAULT_DOCTYPE));
 		options.addOption(OptionBuilder
@@ -136,6 +139,7 @@ class Cli extends CliBase {
 		logger = LoggerFactory.getLogger(Cli.class);
 
 		brokerUrl = cmdl.getOptionValue("u", DEFAULT_BROKER_URL);
+		subjectQueue = cmdl.getOptionValue("q", DEFAULT_SUBJECT_QUEUE);
 		doctype = cmdl.getOptionValue("d", DEFAULT_DOCTYPE);
 		isDryRun = cmdl.hasOption("dry-run");
 		isValidateOption = cmdl.hasOption("validate");
@@ -210,7 +214,7 @@ class Cli extends CliBase {
 		m.put("collections", collections);
 		m.put("xml", String.valueOf(serialize(vd)));
 
-		GoobiMQConnection conn = new GoobiMQConnection(brokerUrl);
+		GoobiMQConnection conn = new GoobiMQConnection(brokerUrl, subjectQueue);
 		conn.send(m);
 		conn.close();
 	}
@@ -279,7 +283,7 @@ class Cli extends CliBase {
 	}
 
 	private Document readEadFile(boolean validateAgainstSchema) {
-		logger.trace( validateAgainstSchema ? "Read and validate" : "Reading");
+		logger.trace(validateAgainstSchema ? "Read and validate" : "Reading");
 
 		Document doc;
 		try {
