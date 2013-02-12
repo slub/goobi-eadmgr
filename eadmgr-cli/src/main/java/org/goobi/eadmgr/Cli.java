@@ -167,11 +167,7 @@ class Cli extends CliBase {
 
 		if (folderId != null) {
 			Document vd = ead.extractFolderData(folderId);
-			if (isDryRun) {
-				print(vd);
-			} else {
-				send(vd, template, doctype, brokerUrl, collections);
-			}
+			send(vd, template, doctype, brokerUrl, collections);
 		}
 
 		return returnCode;
@@ -190,9 +186,13 @@ class Cli extends CliBase {
 		m.put("collections", collections);
 		m.put("xml", String.valueOf(serialize(vd)));
 
-		GoobiMQConnection conn = new GoobiMQConnection(brokerUrl, subjectQueue);
-		conn.send(m);
-		conn.close();
+		if (isDryRun) {
+			println(m.toString());
+		} else {
+			GoobiMQConnection conn = new GoobiMQConnection(brokerUrl, subjectQueue);
+			conn.send(m);
+			conn.close();
+		}
 	}
 
 	private String serialize(Document vd) throws TransformerException {
