@@ -28,7 +28,6 @@ import org.w3c.dom.Document;
 
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
 import java.io.File;
 import java.io.StringWriter;
 import java.text.MessageFormat;
@@ -38,7 +37,6 @@ import static org.apache.activemq.ActiveMQConnection.DEFAULT_BROKER_URL;
 
 class Cli extends CliBase {
 
-	public static final String SCHLEGEL_XSL = "schlegel.xsl";
 	public static final String DEFAULT_PROCESS_TEMPLATE = "Schlegel";
 	public static final String DEFAULT_DOCTYPE = "multivolume";
 	public static final String DEFAULT_SUBJECT_QUEUE = "GoobiProduction.createNewProcessWithLogicalStructureData.Queue";
@@ -165,10 +163,10 @@ class Cli extends CliBase {
 		int returnCode = 0;
 
 		EADDocument ead = new EADDocument();
-		ead.readEadFile(eadFile, isValidateOption ? EADSchemaLoader.load() : null);
+		ead.readEadFile(eadFile, isValidateOption);
 
 		if (folderId != null) {
-			Document vd = ead.extractFolderData(getExtractionProfile(SCHLEGEL_XSL), folderId);
+			Document vd = ead.extractFolderData(folderId);
 			if (isDryRun) {
 				print(vd);
 			} else {
@@ -177,11 +175,6 @@ class Cli extends CliBase {
 		}
 
 		return returnCode;
-	}
-
-	private StreamSource getExtractionProfile(String profileFilename) {
-		logger.trace("Get extraction profile file {} from classpath", profileFilename);
-		return new StreamSource(this.getClass().getClassLoader().getResourceAsStream(profileFilename));
 	}
 
 	private void send(Document vd, String template, String doctype, String brokerUrl, Collection<String> collections) throws Exception {

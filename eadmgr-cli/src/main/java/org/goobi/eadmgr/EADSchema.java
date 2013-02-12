@@ -29,22 +29,36 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+import javax.xml.validation.ValidatorHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
-public class EADSchemaLoader {
+public class EADSchema extends Schema {
 
 	public static final String EAD_200804_XSD = "ead-200804.xsd";
 	public static final String HTTP_WWW_LOC_GOV_EAD_EAD_XSDL = "http://www.loc.gov/ead/ead.xsd";
+	private static EADSchema instance;
+	private static Logger logger = LoggerFactory.getLogger(EADSchema.class);
+	private Schema schema;
 
-	private static Logger logger = LoggerFactory.getLogger(EADSchemaLoader.class);
+	private EADSchema(Schema schema) {
+		this.schema = schema;
+	}
 
-	public static Schema load() throws Exception {
+	public static EADSchema getInstance() throws Exception {
+		if (instance == null) {
+			instance = getFromClasspathOrDownload();
+		}
+		return instance;
+	}
+
+	private static EADSchema getFromClasspathOrDownload() throws Exception {
 		logger.trace("Try to get EAD schema file {} from classpath", EAD_200804_XSD);
 
 		Source src;
-		InputStream is = EADSchemaLoader.class.getClassLoader().getResourceAsStream(EAD_200804_XSD);
+		InputStream is = EADSchema.class.getClassLoader().getResourceAsStream(EAD_200804_XSD);
 		if (is != null) {
 			logger.trace("EAD schema file found on classpath");
 			src = new StreamSource(is);
@@ -60,6 +74,16 @@ public class EADSchemaLoader {
 		}
 
 		SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-		return sf.newSchema(src);
+		return new EADSchema(sf.newSchema(src));
+	}
+
+	@Override
+	public Validator newValidator() {
+		return schema.newValidator();
+	}
+
+	@Override
+	public ValidatorHandler newValidatorHandler() {
+		return schema.newValidatorHandler();
 	}
 }

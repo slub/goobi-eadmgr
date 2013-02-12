@@ -36,24 +36,27 @@ import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import java.io.File;
 
 public class EADDocument {
 
 	private Logger logger = LoggerFactory.getLogger(EADDocument.class);
-
 	private Document ead;
 
-	public void readEadFile(File eadFile, Schema schema) {
-		boolean validateAgainstSchema = (schema != null);
+	public static final String SCHLEGEL_XSL = "schlegel.xsl";
 
+	public void readEadFile(File eadFile, boolean validateAgainstSchema) {
 		logger.trace(validateAgainstSchema ? "Read and validate" : "Reading");
 
 		try {
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			dbf.setNamespaceAware(true);
-			dbf.setSchema(schema);
+
+			Schema eadSchema = EADSchema.getInstance();
+
+			dbf.setSchema(eadSchema);
 
 			DocumentBuilder db = dbf.newDocumentBuilder();
 
@@ -86,7 +89,9 @@ public class EADDocument {
 
 	}
 
-	public Document extractFolderData(Source extractionProfile, String folderId) throws Exception {
+	public Document extractFolderData(String folderId) throws Exception {
+		logger.trace("Get extraction profile file {} from classpath", SCHLEGEL_XSL);
+		Source extractionProfile = new StreamSource(this.getClass().getClassLoader().getResourceAsStream(SCHLEGEL_XSL));
 		logger.info("Extract data for {} using extraction profile {}", folderId, extractionProfile);
 		return extract(ead, extractionProfile, folderId);
 	}
