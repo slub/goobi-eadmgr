@@ -82,6 +82,7 @@ class Cli extends CliBase {
 	}
 
 	@Override
+	@SuppressWarnings("AccessStaticViaInstance") // workaround for screwed OptionBuilder API
 	public void initOptions() {
 		options = new Options();
 
