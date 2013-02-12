@@ -23,6 +23,8 @@ package org.goobi.eadmgr;
 
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import java.util.Map;
@@ -35,6 +37,8 @@ public class GoobiMQConnection {
 	private Session session;
 	private MessageProducer producer;
 
+	private Logger logger = LoggerFactory.getLogger(GoobiMQConnection.class);
+
 	public GoobiMQConnection() throws JMSException {
 		// JMS server is on localhost
 		initActiveMqConnection(ActiveMQConnection.DEFAULT_BROKER_URL, SUBJECT_QUEUE);
@@ -45,9 +49,14 @@ public class GoobiMQConnection {
 	}
 
 	private void initActiveMqConnection(String brokerUrl, String subjectQueue) throws JMSException {
+		logger.trace("Initialize ActiveMQ connection to {}.", brokerUrl);
+		logger.trace("Using queue {}.", subjectQueue);
+
 		ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(brokerUrl);
 		connection = connectionFactory.createConnection();
 		connection.start();
+
+		logger.trace("Connection established. Now creating session.");
 
 		session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 		Destination destination = session.createQueue(subjectQueue);
@@ -55,12 +64,14 @@ public class GoobiMQConnection {
 	}
 
 	public void close() throws JMSException {
+		logger.trace("Closing ActiveMQ connection.");
 		if (connection != null) {
 			connection.close();
 		}
 	}
 
 	public void send(Map<String, Object> message) throws JMSException {
+		logger.trace("Sending ActiveMQ MapMessage {}.", message);
 		MapMessage mapMessage = session.createMapMessage();
 		for (String key : message.keySet()) {
 			mapMessage.setObject(key, message.get(key));

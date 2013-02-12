@@ -132,7 +132,7 @@ class Cli extends CliBase {
 		}
 
 		isVerbose = cmdl.hasOption('v');
-		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", isVerbose ? "TRACE" : "WARN");
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", isVerbose ? "TRACE" : "INFO");
 		logger = LoggerFactory.getLogger(Cli.class);
 
 		brokerUrl = cmdl.getOptionValue("u", DEFAULT_BROKER_URL);
@@ -183,7 +183,7 @@ class Cli extends CliBase {
 
 		if (ead != null) {
 			if (folderId != null) {
-				Document vd = extractVolumeData(ead, folderId);
+				Document vd = extractFolderData(ead, folderId);
 				if (isDryRun) {
 					print(vd);
 				} else {
@@ -198,7 +198,10 @@ class Cli extends CliBase {
 	}
 
 	private void send(Document vd, String template, String doctype, String brokerUrl, Collection<String> collections) throws Exception {
-		logger.info("Sending...");
+		logger.info("Sending XML message to ActiveMQ server at {}", brokerUrl);
+		logger.trace("Collections: {}", collections);
+		logger.trace("Process template: {}", template);
+		logger.trace("Message doctype: {}", doctype);
 
 		Map<String, Object> m = new HashMap();
 		m.put("id", String.valueOf(java.util.UUID.randomUUID()));
@@ -220,13 +223,14 @@ class Cli extends CliBase {
 		return sw.toString();
 	}
 
-	private Document extractVolumeData(Document ead, String volumeId) throws Exception {
-		logger.info("Extract data using extraction profile " + SCHLEGEL_XSL);
+	private Document extractFolderData(Document ead, String folderId) throws Exception {
+		logger.info("Extract data for {} using extraction profile {}", folderId, SCHLEGEL_XSL);
 		Source extractionProfile = getExtractionProfile(SCHLEGEL_XSL);
-		return extract(ead, extractionProfile, volumeId);
+		return extract(ead, extractionProfile, folderId);
 	}
 
 	private StreamSource getExtractionProfile(String profileFilename) {
+		logger.trace("Get extraction profile file {} from classpath", profileFilename);
 		return new StreamSource(this.getClass().getClassLoader().getResourceAsStream(profileFilename));
 	}
 
@@ -275,7 +279,7 @@ class Cli extends CliBase {
 	}
 
 	private Document readEadFile(boolean validateAgainstSchema) {
-		logger.info("Reading...");
+		logger.trace( validateAgainstSchema ? "Read and validate" : "Reading");
 
 		Document doc;
 		try {
@@ -326,13 +330,16 @@ class Cli extends CliBase {
 
 		Source result;
 
-		// try to get schema file from classpath
+		logger.trace("Try to get EAD schema file {} from classpath", EAD_200804_XSDL);
 		InputStream is = this.getClass().getClassLoader().getResourceAsStream(EAD_200804_XSDL);
 		if (is != null) {
+			logger.trace("EAD schema file found on classpath");
 			result = new StreamSource(is);
 		} else {
+			logger.trace("EAD schema file not found on classpath. Try to download from URL {}", HTTP_WWW_LOC_GOV_EAD_EAD_XSDL);
 			try {
 				result = new StreamSource(new URL(HTTP_WWW_LOC_GOV_EAD_EAD_XSDL).openStream());
+				logger.trace("EAD schema obtained by URL");
 			} catch (IOException e) {
 				throw new Exception("Cannot obtain schema for validation. Neither is the file " + EAD_200804_XSDL +
 						" to be found on the classpath nor can the schema be obtained from " + HTTP_WWW_LOC_GOV_EAD_EAD_XSDL + ".");
