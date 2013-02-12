@@ -25,19 +25,10 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
 import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.dom.DOMResult;
-import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
@@ -54,7 +45,7 @@ import static org.apache.activemq.ActiveMQConnection.DEFAULT_BROKER_URL;
 
 class Cli extends CliBase {
 
-	public static final String EAD_200804_XSDL = "ead-200804.xsd";
+	public static final String EAD_200804_XSD = "ead-200804.xsd";
 	public static final String HTTP_WWW_LOC_GOV_EAD_EAD_XSDL = "http://www.loc.gov/ead/ead.xsd";
 	public static final String SCHLEGEL_XSL = "schlegel.xsl";
 	public static final String DEFAULT_PROCESS_TEMPLATE = "Schlegel";
@@ -64,7 +55,6 @@ class Cli extends CliBase {
 	public static final String PROMPT_HINT = "Try 'eadmgr -h' for more information.";
 	private String[] args;
 	private Options options;
-	private CommandLine cmdl;
 	private File eadFile;
 	private String brokerUrl;
 	private String doctype;
@@ -73,7 +63,6 @@ class Cli extends CliBase {
 	private boolean isDryRun;
 	private boolean isHelpRequested;
 	private boolean isValidateOption;
-	private boolean isVerbose;
 	private Collection<String> collections;
 	private Logger logger;
 	private String subjectQueue;
@@ -89,7 +78,7 @@ class Cli extends CliBase {
 
 	private void print(Document d) throws TransformerException {
 		XsltProcessor xsltproc = new XsltProcessor();
-		xsltproc.transform(new DOMSource(d), new StreamResult(System.out));
+		xsltproc.transform(d, new StreamResult(System.out));
 	}
 
 	@Override
@@ -126,7 +115,7 @@ class Cli extends CliBase {
 	public void parseArguments(String[] args) throws Exception {
 		CommandLineParser parser = new BasicParser();
 		this.args = args;
-		this.cmdl = parser.parse(options, args);
+		CommandLine cmdl = parser.parse(options, args);
 
 		isHelpRequested = cmdl.hasOption('h');
 		if (isHelpRequested) {
@@ -134,8 +123,8 @@ class Cli extends CliBase {
 			return;
 		}
 
-		isVerbose = cmdl.hasOption('v');
-		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", isVerbose ? "TRACE" : "INFO");
+		boolean verbose = cmdl.hasOption('v');
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", verbose ? "TRACE" : "INFO");
 		logger = LoggerFactory.getLogger(Cli.class);
 
 		brokerUrl = cmdl.getOptionValue("u", DEFAULT_BROKER_URL);
@@ -183,22 +172,24 @@ class Cli extends CliBase {
 
 		int returnCode = 0;
 
-		Document ead = readEadFile(isValidateOption);
+		EADDocument ead = new EADDocument();
+		ead.readEadFile(eadFile, isValidateOption ? obtainEADSchema() : null);
 
-		if (ead != null) {
-			if (folderId != null) {
-				Document vd = extractFolderData(ead, folderId);
-				if (isDryRun) {
-					print(vd);
-				} else {
-					send(vd, template, doctype, brokerUrl, collections);
-				}
+		if (folderId != null) {
+			Document vd = ead.extractFolderData(getExtractionProfile(SCHLEGEL_XSL), folderId);
+			if (isDryRun) {
+				print(vd);
+			} else {
+				send(vd, template, doctype, brokerUrl, collections);
 			}
-		} else {
-			returnCode = 1;
 		}
 
 		return returnCode;
+	}
+
+	private StreamSource getExtractionProfile(String profileFilename) {
+		logger.trace("Get extraction profile file {} from classpath", profileFilename);
+		return new StreamSource(this.getClass().getClassLoader().getResourceAsStream(profileFilename));
 	}
 
 	private void send(Document vd, String template, String doctype, String brokerUrl, Collection<String> collections) throws Exception {
@@ -207,7 +198,7 @@ class Cli extends CliBase {
 		logger.trace("Process template: {}", template);
 		logger.trace("Message doctype: {}", doctype);
 
-		Map<String, Object> m = new HashMap();
+		Map<String, Object> m = new HashMap<String, Object>();
 		m.put("id", String.valueOf(java.util.UUID.randomUUID()));
 		m.put("template", template);
 		m.put("docType", doctype);
@@ -219,138 +210,35 @@ class Cli extends CliBase {
 		conn.close();
 	}
 
-	private Object serialize(Document vd) throws TransformerException {
+	private String serialize(Document vd) throws TransformerException {
 		StringWriter sw = new StringWriter();
 		StreamResult out = new StreamResult(sw);
 		XsltProcessor xsltproc = new XsltProcessor();
-		xsltproc.transform(new DOMSource(vd), out);
+		xsltproc.transform(vd, out);
 		return sw.toString();
 	}
 
-	private Document extractFolderData(Document ead, String folderId) throws Exception {
-		logger.info("Extract data for {} using extraction profile {}", folderId, SCHLEGEL_XSL);
-		Source extractionProfile = getExtractionProfile(SCHLEGEL_XSL);
-		return extract(ead, extractionProfile, folderId);
-	}
+	private Schema obtainEADSchema() throws Exception {
+		logger.trace("Try to get EAD schema file {} from classpath", EAD_200804_XSD);
 
-	private StreamSource getExtractionProfile(String profileFilename) {
-		logger.trace("Get extraction profile file {} from classpath", profileFilename);
-		return new StreamSource(this.getClass().getClassLoader().getResourceAsStream(profileFilename));
-	}
-
-	private Document extract(Document ead, Source extractionProfile, String volumeId)
-			throws Exception {
-		DOMResult r = transform(ead, extractionProfile);
-		Document doc = filter(volumeId, r);
-		return doc;
-	}
-
-	private DOMResult transform(Document ead, Source extractionProfile) throws TransformerException {
-		DOMResult result = new DOMResult();
-		XsltProcessor xsltproc = new XsltProcessor();
-		xsltproc.transform(new DOMSource(ead), result, extractionProfile);
-		return result;
-	}
-
-	private Document filter(String folderId, DOMResult r) throws Exception {
-		XPathProcessor xp = new XPathProcessor();
-		xp.setQueryNode(r.getNode());
-
-		xp.setVariable("folder_id", folderId);
-		Node folderNode = xp.query("/convolute/folders/folder[id=$folder_id]");
-		if (folderNode == null) {
-			throw new Exception("No folder with ID " + folderId);
-		}
-		Node idNode = xp.query("/convolute/id");
-		Node titleNode = xp.query("/convolute/title");
-		Node ownerNode = xp.query("/convolute/owner");
-
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document doc = db.newDocument();
-
-		Element convolute = doc.createElement("convolute");
-		Element folders = doc.createElement("folders");
-
-		doc.appendChild(convolute);
-		convolute.appendChild(doc.adoptNode(idNode.cloneNode(true)));
-		convolute.appendChild(doc.adoptNode(titleNode.cloneNode(true)));
-		convolute.appendChild(doc.adoptNode(ownerNode.cloneNode(true)));
-		convolute.appendChild(folders);
-		folders.appendChild(doc.adoptNode(folderNode.cloneNode(true)));
-
-		return doc;
-	}
-
-	private Document readEadFile(boolean validateAgainstSchema) {
-		logger.trace(validateAgainstSchema ? "Read and validate" : "Reading");
-
-		Document doc;
-		try {
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-			dbf.setNamespaceAware(true);
-
-			if (validateAgainstSchema) {
-				SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-				Schema schema = sf.newSchema(obtainEADSchema());
-				dbf.setSchema(schema);
-			}
-
-			DocumentBuilder db = dbf.newDocumentBuilder();
-
-			db.setErrorHandler(new ErrorHandler() {
-				@Override
-				public void warning(SAXParseException exception) throws SAXException {
-					throw exception;
-				}
-
-				@Override
-				public void error(SAXParseException exception) throws SAXException {
-					throw exception;
-				}
-
-				@Override
-				public void fatalError(SAXParseException exception) throws SAXException {
-					throw exception;
-				}
-			});
-			doc = db.parse(eadFile);
-
-			// http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
-			doc.getDocumentElement().normalize();
-
-		} catch (SAXParseException spe) {
-			logger.error(spe.getMessage() + " (at line " + spe.getLineNumber() + ")");
-			return null;
-		} catch (Exception ex) {
-			logger.error(ex.getMessage());
-			return null;
-		}
-
-		return doc;
-	}
-
-	private Source obtainEADSchema() throws Exception {
-
-		Source result;
-
-		logger.trace("Try to get EAD schema file {} from classpath", EAD_200804_XSDL);
-		InputStream is = this.getClass().getClassLoader().getResourceAsStream(EAD_200804_XSDL);
+		Source src;
+		InputStream is = this.getClass().getClassLoader().getResourceAsStream(EAD_200804_XSD);
 		if (is != null) {
 			logger.trace("EAD schema file found on classpath");
-			result = new StreamSource(is);
+			src = new StreamSource(is);
 		} else {
 			logger.trace("EAD schema file not found on classpath. Try to download from URL {}", HTTP_WWW_LOC_GOV_EAD_EAD_XSDL);
 			try {
-				result = new StreamSource(new URL(HTTP_WWW_LOC_GOV_EAD_EAD_XSDL).openStream());
+				src = new StreamSource(new URL(HTTP_WWW_LOC_GOV_EAD_EAD_XSDL).openStream());
 				logger.trace("EAD schema obtained by URL");
 			} catch (IOException e) {
-				throw new Exception("Cannot obtain schema for validation. Neither is the file " + EAD_200804_XSDL +
+				throw new Exception("Cannot obtain schema for validation. Neither is the file " + EAD_200804_XSD +
 						" to be found on the classpath nor can the schema be obtained from " + HTTP_WWW_LOC_GOV_EAD_EAD_XSDL + ".");
 			}
 		}
 
-		return result;
+		SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+		return sf.newSchema(src);
 	}
 
 	private void printUsageInformation() {

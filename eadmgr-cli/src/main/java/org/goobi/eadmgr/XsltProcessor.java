@@ -21,7 +21,10 @@
  */
 package org.goobi.eadmgr;
 
+import org.w3c.dom.Document;
+
 import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
 
 public class XsltProcessor {
 
@@ -29,6 +32,10 @@ public class XsltProcessor {
 
 	public XsltProcessor() throws TransformerConfigurationException {
 		this.factory = TransformerFactory.newInstance();
+	}
+
+	public void transform(Document d, Result r) throws TransformerException {
+		transform(new DOMSource(d), r);
 	}
 
 	public void transform(Source s, Result r) throws TransformerException {
