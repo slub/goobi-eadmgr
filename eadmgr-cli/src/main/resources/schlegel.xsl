@@ -95,8 +95,8 @@
             <xsl:element name="origin">
                 <xsl:value-of select="ead:did/ead:unittitle/ead:geogname[attribute::role]"/>
             </xsl:element>
-            <xsl:element name="extend">
-                <xsl:value-of select="ead:did/ead:physdesc/ead:extend"/>
+            <xsl:element name="extent">
+                <xsl:value-of select="ead:did/ead:physdesc/ead:extent"/>
             </xsl:element>
             <xsl:element name="dimensions">
                 <xsl:value-of select="ead:did/ead:physdesc/ead:dimensions"/>
