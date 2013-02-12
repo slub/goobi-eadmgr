@@ -26,18 +26,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 
-import javax.xml.XMLConstants;
-import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.StringWriter;
-import java.net.URL;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -45,8 +38,6 @@ import static org.apache.activemq.ActiveMQConnection.DEFAULT_BROKER_URL;
 
 class Cli extends CliBase {
 
-	public static final String EAD_200804_XSD = "ead-200804.xsd";
-	public static final String HTTP_WWW_LOC_GOV_EAD_EAD_XSDL = "http://www.loc.gov/ead/ead.xsd";
 	public static final String SCHLEGEL_XSL = "schlegel.xsl";
 	public static final String DEFAULT_PROCESS_TEMPLATE = "Schlegel";
 	public static final String DEFAULT_DOCTYPE = "multivolume";
@@ -174,7 +165,7 @@ class Cli extends CliBase {
 		int returnCode = 0;
 
 		EADDocument ead = new EADDocument();
-		ead.readEadFile(eadFile, isValidateOption ? obtainEADSchema() : null);
+		ead.readEadFile(eadFile, isValidateOption ? EADSchemaLoader.load() : null);
 
 		if (folderId != null) {
 			Document vd = ead.extractFolderData(getExtractionProfile(SCHLEGEL_XSL), folderId);
@@ -217,29 +208,6 @@ class Cli extends CliBase {
 		XsltProcessor xsltproc = new XsltProcessor();
 		xsltproc.transform(vd, out);
 		return sw.toString();
-	}
-
-	private Schema obtainEADSchema() throws Exception {
-		logger.trace("Try to get EAD schema file {} from classpath", EAD_200804_XSD);
-
-		Source src;
-		InputStream is = this.getClass().getClassLoader().getResourceAsStream(EAD_200804_XSD);
-		if (is != null) {
-			logger.trace("EAD schema file found on classpath");
-			src = new StreamSource(is);
-		} else {
-			logger.trace("EAD schema file not found on classpath. Try to download from URL {}", HTTP_WWW_LOC_GOV_EAD_EAD_XSDL);
-			try {
-				src = new StreamSource(new URL(HTTP_WWW_LOC_GOV_EAD_EAD_XSDL).openStream());
-				logger.trace("EAD schema obtained by URL");
-			} catch (IOException e) {
-				throw new Exception("Cannot obtain schema for validation. Neither is the file " + EAD_200804_XSD +
-						" to be found on the classpath nor can the schema be obtained from " + HTTP_WWW_LOC_GOV_EAD_EAD_XSDL + ".");
-			}
-		}
-
-		SchemaFactory sf = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-		return sf.newSchema(src);
 	}
 
 	private void printUsageInformation() {
