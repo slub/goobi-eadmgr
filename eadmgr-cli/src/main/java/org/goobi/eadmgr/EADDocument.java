@@ -54,9 +54,10 @@ public class EADDocument {
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			dbf.setNamespaceAware(true);
 
-			Schema eadSchema = EADSchema.getInstance();
-
-			dbf.setSchema(eadSchema);
+			if (validateAgainstSchema) {
+				Schema eadSchema = EADSchema.getInstance();
+				dbf.setSchema(eadSchema);
+			}
 
 			DocumentBuilder db = dbf.newDocumentBuilder();
 
