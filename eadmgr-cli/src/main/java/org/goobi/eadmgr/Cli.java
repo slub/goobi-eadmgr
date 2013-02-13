@@ -113,10 +113,6 @@ class Cli extends CliBase {
 			return;
 		}
 
-		boolean verbose = cmdl.hasOption('v');
-		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", verbose ? "TRACE" : "INFO");
-		logger = LoggerFactory.getLogger(Cli.class);
-
 		brokerUrl = cmdl.getOptionValue("u", DEFAULT_BROKER_URL);
 		subjectQueue = cmdl.getOptionValue("q", DEFAULT_SUBJECT_QUEUE);
 		doctype = cmdl.getOptionValue("d", DEFAULT_DOCTYPE);
@@ -147,6 +143,10 @@ class Cli extends CliBase {
 		if (!eadFile.exists() || !eadFile.canRead() || !eadFile.isFile()) {
 			throw new Exception("Cannot read " + eadFile.getAbsolutePath());
 		}
+
+		boolean verbose = cmdl.hasOption('v');
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", verbose ? "TRACE" : "INFO");
+		logger = LoggerFactory.getLogger(Cli.class);
 
 	}
 
