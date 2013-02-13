@@ -26,10 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.stream.StreamResult;
 import java.io.File;
-import java.io.StringWriter;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -63,11 +60,6 @@ class Cli extends CliBase {
 
 	private void println(String msg) {
 		System.out.println(msg);
-	}
-
-	private void print(Document d) throws TransformerException {
-		XsltProcessor xsltproc = new XsltProcessor();
-		xsltproc.transform(d, new StreamResult(System.out));
 	}
 
 	@Override
@@ -184,7 +176,7 @@ class Cli extends CliBase {
 		m.put("template", template);
 		m.put("docType", doctype);
 		m.put("collections", collections);
-		m.put("xml", String.valueOf(serialize(vd)));
+		m.put("xml", String.valueOf(XMLSerializer.serialize(vd)));
 
 		if (isDryRun) {
 			println(m.toString());
@@ -193,14 +185,6 @@ class Cli extends CliBase {
 			conn.send(m);
 			conn.close();
 		}
-	}
-
-	private String serialize(Document vd) throws TransformerException {
-		StringWriter sw = new StringWriter();
-		StreamResult out = new StreamResult(sw);
-		XsltProcessor xsltproc = new XsltProcessor();
-		xsltproc.transform(vd, out);
-		return sw.toString();
 	}
 
 	private void printUsageInformation() {
