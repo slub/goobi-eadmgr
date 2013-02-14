@@ -34,6 +34,11 @@ import static org.apache.activemq.ActiveMQConnection.DEFAULT_BROKER_URL;
 
 class Cli extends CliBase {
 
+	private enum Commands {
+		Help,
+		Create
+	}
+
 	public static final String DEFAULT_PROCESS_TEMPLATE = "Schlegel";
 	public static final String DEFAULT_DOCTYPE = "multivolume";
 	public static final String DEFAULT_SUBJECT_QUEUE = "GoobiProduction.createNewProcessWithLogicalStructureData.Queue";
@@ -47,11 +52,12 @@ class Cli extends CliBase {
 	private String template;
 	private String folderId;
 	private boolean isDryRun;
-	private boolean isHelpRequested;
 	private boolean isValidateOption;
 	private Collection<String> collections;
 	private Logger logger;
 	private String subjectQueue;
+	private Commands command;
+
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -99,9 +105,10 @@ class Cli extends CliBase {
 		this.args = args;
 		CommandLine cmdl = parser.parse(options, args);
 
-		isHelpRequested = cmdl.hasOption('h');
-		if (isHelpRequested) {
-			// stop parsing the rest of the arguments if user requests help
+		determineCommand(cmdl);
+
+		// stop parsing the rest of the arguments if user requests help
+		if (command == Commands.Help) {
 			return;
 		}
 
@@ -110,19 +117,20 @@ class Cli extends CliBase {
 		doctype = cmdl.getOptionValue("d", DEFAULT_DOCTYPE);
 		isDryRun = cmdl.hasOption("dry-run");
 		isValidateOption = cmdl.hasOption("validate");
-
 		template = cmdl.getOptionValue("t", DEFAULT_PROCESS_TEMPLATE);
-		folderId = cmdl.getOptionValue('c');
 
-		collections = new ArrayList<String>();
-		String optVal = cmdl.getOptionValue("collections");
-		if (optVal != null) {
-			collections.addAll(Arrays.asList(optVal.split(",")));
+		if (command == Commands.Create) {
+			folderId = cmdl.getOptionValue('c');
+			collections = new ArrayList<String>();
+			String optVal = cmdl.getOptionValue("collections");
+			if (optVal != null) {
+				collections.addAll(Arrays.asList(optVal.split(",")));
+			}
+	        if (collections.isEmpty()) {
+				throw new Exception("Option 'create-process' requires option 'collections' to be properly specified.");
+			}
 		}
 
-		if (cmdl.hasOption('c') && (collections.isEmpty())) {
-			throw new Exception("Option 'create-process' requires option 'collections' to be properly specified.");
-		}
 		String[] leftOverArgs = cmdl.getArgs();
 		if (leftOverArgs.length == 0) {
 			throw new Exception("No filename given.");
@@ -142,10 +150,18 @@ class Cli extends CliBase {
 
 	}
 
+	private void determineCommand(CommandLine cmdl) {
+		if (cmdl.hasOption('h')) {
+			command = Commands.Help;
+		} else if (cmdl.hasOption("c")) {
+			command = Commands.Create;
+		}
+	}
+
 	@Override
 	public int processing() throws Exception {
 
-		if ((isHelpRequested) || (args.length == 0)) {
+		if ((command == Commands.Help) || (args.length == 0)) {
 			printUsageInformation();
 			return 0;
 		}
@@ -157,9 +173,11 @@ class Cli extends CliBase {
 		EADDocument ead = new EADDocument();
 		ead.readEadFile(eadFile, isValidateOption);
 
-		if (folderId != null) {
-			Document vd = ead.extractFolderData(folderId);
-			send(vd, template, doctype, brokerUrl, collections);
+		switch (command) {
+			case Create:
+				Document vd = ead.extractFolderData(folderId);
+				send(vd, template, doctype, brokerUrl, collections);
+				break;
 		}
 
 		return returnCode;
