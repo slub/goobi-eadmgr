@@ -93,7 +93,7 @@ public class EADDocument {
 	public Document extractFolderData(String folderId) throws Exception {
 		logger.trace("Get extraction profile file {} from classpath", SCHLEGEL_XSL);
 		Source extractionProfile = new StreamSource(this.getClass().getClassLoader().getResourceAsStream(SCHLEGEL_XSL));
-		logger.info("Extract data for {} using extraction profile {}", folderId, extractionProfile);
+		logger.info("Extract data for {} using extraction profile {}", folderId, SCHLEGEL_XSL);
 		return extract(ead, extractionProfile, folderId);
 	}
 
