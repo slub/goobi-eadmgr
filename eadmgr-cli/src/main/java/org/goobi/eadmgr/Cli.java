@@ -34,11 +34,6 @@ import static org.apache.activemq.ActiveMQConnection.DEFAULT_BROKER_URL;
 
 class Cli extends CliBase {
 
-	private enum Commands {
-		Help,
-		Create
-	}
-
 	public static final String DEFAULT_PROCESS_TEMPLATE = "Schlegel";
 	public static final String DEFAULT_DOCTYPE = "multivolume";
 	public static final String DEFAULT_SUBJECT_QUEUE = "GoobiProduction.createNewProcessWithLogicalStructureData.Queue";
@@ -58,7 +53,6 @@ class Cli extends CliBase {
 	private String subjectQueue;
 	private Commands command;
 
-
 	public static void main(String[] args) {
 		Cli cli = new Cli();
 		System.exit(cli.run(args));
@@ -66,6 +60,12 @@ class Cli extends CliBase {
 
 	private void println(String msg) {
 		System.out.println(msg);
+	}
+
+	private void printList(List<String> list) {
+		for (String s : list) {
+			println(s);
+		}
 	}
 
 	@Override
@@ -76,6 +76,7 @@ class Cli extends CliBase {
 		// mutually exclusive main commands
 		OptionGroup mainCommands = new OptionGroup();
 		mainCommands.addOption(new Option("h", "help", false, "Print this usage information"));
+		mainCommands.addOption(new Option("l", "list-folder-ids", false, "List all folder IDs available for process creation."));
 		mainCommands.addOption(new Option("c", "create-process", true,
 				"Extracted data for given folder ID as process creation message to configured ActiveMQ server."));
 		options.addOptionGroup(mainCommands);
@@ -126,7 +127,7 @@ class Cli extends CliBase {
 			if (optVal != null) {
 				collections.addAll(Arrays.asList(optVal.split(",")));
 			}
-	        if (collections.isEmpty()) {
+			if (collections.isEmpty()) {
 				throw new Exception("Option 'create-process' requires option 'collections' to be properly specified.");
 			}
 		}
@@ -153,6 +154,8 @@ class Cli extends CliBase {
 	private void determineCommand(CommandLine cmdl) {
 		if (cmdl.hasOption('h')) {
 			command = Commands.Help;
+		} else if (cmdl.hasOption("l")) {
+			command = Commands.List;
 		} else if (cmdl.hasOption("c")) {
 			command = Commands.Create;
 		}
@@ -174,6 +177,10 @@ class Cli extends CliBase {
 		ead.readEadFile(eadFile, isValidateOption);
 
 		switch (command) {
+			case List:
+				List<String> folderIds = ead.getFolderIds();
+				printList(folderIds);
+				break;
 			case Create:
 				Document vd = ead.extractFolderData(folderId);
 				send(vd, template, doctype, brokerUrl, collections);
@@ -220,6 +227,12 @@ class Cli extends CliBase {
 			println(ex.getMessage());
 		}
 		println(PROMPT_HINT);
+	}
+
+	private enum Commands {
+		Help,
+		List,
+		Create
 	}
 }
 

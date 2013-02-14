@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -38,14 +39,16 @@ import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
+import javax.xml.xpath.XPathExpressionException;
 import java.io.File;
+import java.util.LinkedList;
+import java.util.List;
 
 public class EADDocument {
 
+	public static final String SCHLEGEL_XSL = "schlegel.xsl";
 	private Logger logger = LoggerFactory.getLogger(EADDocument.class);
 	private Document ead;
-
-	public static final String SCHLEGEL_XSL = "schlegel.xsl";
 
 	public void readEadFile(File eadFile, boolean validateAgainstSchema) {
 		logger.trace(validateAgainstSchema ? "Read and validate" : "Reading");
@@ -141,4 +144,17 @@ public class EADDocument {
 		return doc;
 	}
 
+	public List<String> getFolderIds() throws XPathExpressionException {
+		List<String> result = new LinkedList<String>();
+
+		XPathProcessor xp = new XPathProcessor();
+		xp.declareNamespace("ead", "urn:isbn:1-931666-22-9");
+		NodeList nl = xp.queryList("//ead:dsc/ead:c[@level='class']/@id", ead);
+
+		for (int i = 0; i < nl.getLength(); i++) {
+			result.add(nl.item(i).getNodeValue());
+		}
+
+		return result;
+	}
 }
