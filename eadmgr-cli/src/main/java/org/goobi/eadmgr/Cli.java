@@ -52,6 +52,7 @@ class Cli extends CliBase {
 	private Logger logger;
 	private String subjectQueue;
 	private Commands command;
+	private boolean isUseFolderId;
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -95,6 +96,10 @@ class Cli extends CliBase {
 		options.addOption("t", "template", true, MessageFormat.format("Goobi Process Template name. If not given \"{0}\" is used.", DEFAULT_PROCESS_TEMPLATE));
 		options.addOption("d", "doctype", true, MessageFormat.format("Goobi Doctype name. If not given \"{0}\" is used.", DEFAULT_DOCTYPE));
 		options.addOption(OptionBuilder
+				.withLongOpt("use-folder-id")
+				.withDescription("Use folder ID when generating ActiveMQ Message IDs. If not given a random 128 bit universally unique identifier (UUID) is generated.")
+				.create());
+		options.addOption(OptionBuilder
 				.withLongOpt("collections")
 				.hasArg()
 				.withDescription("Comma separated list of names of collections to which the newly created process should be assigned.")
@@ -119,6 +124,7 @@ class Cli extends CliBase {
 		isDryRun = cmdl.hasOption("dry-run");
 		isValidateOption = cmdl.hasOption("validate");
 		template = cmdl.getOptionValue("t", DEFAULT_PROCESS_TEMPLATE);
+		isUseFolderId = cmdl.hasOption("use-folder-id");
 
 		if (command == Commands.Create) {
 			folderId = cmdl.getOptionValue('c');
@@ -196,8 +202,10 @@ class Cli extends CliBase {
 		logger.trace("Process template: {}", template);
 		logger.trace("Message doctype: {}", doctype);
 
+		String uuid = (isUseFolderId) ? folderId : String.valueOf(java.util.UUID.randomUUID());
+
 		Map<String, Object> m = new HashMap<String, Object>();
-		m.put("id", String.valueOf(java.util.UUID.randomUUID()));
+		m.put("id", uuid);
 		m.put("template", template);
 		m.put("docType", doctype);
 		m.put("collections", collections);
