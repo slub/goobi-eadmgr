@@ -27,7 +27,7 @@
 
 
     <xsl:template match="//ead:archdesc">
-        <xsl:element name="convolute">
+        <xsl:element name="bundle">
             <xsl:element name="id">
                 <xsl:value-of select="@id"/>
             </xsl:element>

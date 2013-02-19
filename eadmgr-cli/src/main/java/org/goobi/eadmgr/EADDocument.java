@@ -119,26 +119,26 @@ public class EADDocument {
 		xp.setQueryNode(r.getNode());
 
 		xp.setVariable("folder_id", folderId);
-		Node folderNode = xp.query("/convolute/folders/folder[id=$folder_id]");
+		Node folderNode = xp.query("/bundle/folders/folder[id=$folder_id]");
 		if (folderNode == null) {
 			throw new Exception("No folder with ID " + folderId);
 		}
-		Node idNode = xp.query("/convolute/id");
-		Node titleNode = xp.query("/convolute/title");
-		Node ownerNode = xp.query("/convolute/owner");
+		Node idNode = xp.query("/bundle/id");
+		Node titleNode = xp.query("/bundle/title");
+		Node ownerNode = xp.query("/bundle/owner");
 
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
 		Document doc = db.newDocument();
 
-		Element convolute = doc.createElement("convolute");
+		Element bundle = doc.createElement("bundle");
 		Element folders = doc.createElement("folders");
 
-		doc.appendChild(convolute);
-		convolute.appendChild(doc.adoptNode(idNode.cloneNode(true)));
-		convolute.appendChild(doc.adoptNode(titleNode.cloneNode(true)));
-		convolute.appendChild(doc.adoptNode(ownerNode.cloneNode(true)));
-		convolute.appendChild(folders);
+		doc.appendChild(bundle);
+		bundle.appendChild(doc.adoptNode(idNode.cloneNode(true)));
+		bundle.appendChild(doc.adoptNode(titleNode.cloneNode(true)));
+		bundle.appendChild(doc.adoptNode(ownerNode.cloneNode(true)));
+		bundle.appendChild(folders);
 		folders.appendChild(doc.adoptNode(folderNode.cloneNode(true)));
 
 		return doc;
