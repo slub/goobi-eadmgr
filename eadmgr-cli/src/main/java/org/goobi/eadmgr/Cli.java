@@ -53,6 +53,7 @@ class Cli extends CliBase {
 	private String subjectQueue;
 	private Commands command;
 	private boolean isUseFolderId;
+	private Map<String, String> userMessageFields;
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -104,6 +105,10 @@ class Cli extends CliBase {
 				.hasArg()
 				.withDescription("Comma separated list of names of collections to which the newly created process should be assigned.")
 				.create());
+		options.addOption(OptionBuilder
+				.withDescription("User defined option in the form of <key>=<value> to append to the ActiveMQ message.")
+				.hasArgs()
+				.create("O"));
 	}
 
 	public void parseArguments(String[] args) throws Exception {
@@ -125,6 +130,7 @@ class Cli extends CliBase {
 		isValidateOption = cmdl.hasOption("validate");
 		template = cmdl.getOptionValue("t", DEFAULT_PROCESS_TEMPLATE);
 		isUseFolderId = cmdl.hasOption("use-folder-id");
+		userMessageFields = splitAndMap(cmdl.getOptionValues("O"));
 
 		if (command == Commands.Create) {
 			folderId = cmdl.getOptionValue('c');
@@ -155,6 +161,22 @@ class Cli extends CliBase {
 		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", verbose ? "TRACE" : "INFO");
 		logger = LoggerFactory.getLogger(Cli.class);
 
+	}
+
+	private Map<String, String> splitAndMap(String[] optionValues) throws Exception {
+		if (optionValues != null) {
+			HashMap<String, String> result = new HashMap<String, String>();
+			for (String s : optionValues) {
+				String[] split = s.split("=");
+				if ((split.length == 2) && (!split[0].isEmpty()) && (!split[1].isEmpty())) {
+					result.put(split[0], split[1]);
+				} else {
+					throw new Exception("Invalid argument for option: -O " + s);
+				}
+			}
+			return result;
+		}
+		return null;
 	}
 
 	private void determineCommand(CommandLine cmdl) {
@@ -189,14 +211,14 @@ class Cli extends CliBase {
 				break;
 			case Create:
 				Document vd = ead.extractFolderData(folderId);
-				send(vd, template, doctype, brokerUrl, collections);
+				send(vd, template, doctype, brokerUrl, collections, userMessageFields);
 				break;
 		}
 
 		return returnCode;
 	}
 
-	private void send(Document vd, String template, String doctype, String brokerUrl, Collection<String> collections) throws Exception {
+	private void send(Document vd, String template, String doctype, String brokerUrl, Collection<String> collections, Map<String, String> userMessageFields) throws Exception {
 		logger.info("Sending XML message to ActiveMQ server at {}", brokerUrl);
 		logger.trace("Collections: {}", collections);
 		logger.trace("Process template: {}", template);
@@ -209,6 +231,7 @@ class Cli extends CliBase {
 		m.put("template", template);
 		m.put("docType", doctype);
 		m.put("collections", collections);
+		m.put("userMessageFields", userMessageFields);
 		m.put("xml", String.valueOf(XMLSerializer.serialize(vd)));
 
 		if (isDryRun) {
