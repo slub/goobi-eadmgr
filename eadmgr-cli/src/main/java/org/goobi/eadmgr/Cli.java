@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 
 import java.io.File;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -160,7 +162,6 @@ class Cli extends CliBase {
 		boolean verbose = cmdl.hasOption('v');
 		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", verbose ? "TRACE" : "INFO");
 		logger = LoggerFactory.getLogger(Cli.class);
-
 	}
 
 	private Map<String, String> splitAndMap(String[] optionValues) throws Exception {
@@ -252,11 +253,18 @@ class Cli extends CliBase {
 
 	@Override
 	public void handleException(Exception ex) {
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		ex.printStackTrace(pw);
+
+		String msg = sw.toString();
+
 		if (logger != null) {
-			logger.error(ex.getMessage());
+			logger.error(msg);
 		} else {
-			println(ex.getMessage());
+			println(msg);
 		}
+
 		println(PROMPT_HINT);
 	}
 
