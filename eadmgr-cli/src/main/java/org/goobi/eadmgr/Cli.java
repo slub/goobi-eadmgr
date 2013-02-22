@@ -140,7 +140,7 @@ class Cli extends CliBase {
 				collections.addAll(Arrays.asList(optVal));
 			}
 			if (collections.isEmpty()) {
-				throw new Exception("Option 'create-process' requires option 'collections' to be properly specified.");
+				throw new Exception("Option 'create-process' requires option 'collection' to be properly specified.");
 			}
 		}
 
