@@ -101,10 +101,10 @@ class Cli extends CliBase {
 				.withDescription("Use folder ID when generating ActiveMQ Message IDs. If not given a random 128 bit universally unique identifier (UUID) is generated.")
 				.create());
 		options.addOption(OptionBuilder
-				.withLongOpt("collections")
+				.withLongOpt("collection")
+				.withDescription("Name of a collection to which the newly created process should be assigned.")
 				.hasArg()
-				.withDescription("Comma separated list of names of collections to which the newly created process should be assigned.")
-				.create());
+				.create("C"));
 		options.addOption(OptionBuilder
 				.withDescription("User defined option in the form of <key>=<value> to append to the ActiveMQ message.")
 				.hasArgs()
@@ -135,9 +135,9 @@ class Cli extends CliBase {
 		if (command == Commands.Create) {
 			folderId = cmdl.getOptionValue('c');
 			collections = new ArrayList<String>();
-			String optVal = cmdl.getOptionValue("collections");
+			String[] optVal = cmdl.getOptionValues("collection");
 			if (optVal != null) {
-				collections.addAll(Arrays.asList(optVal.split(",")));
+				collections.addAll(Arrays.asList(optVal));
 			}
 			if (collections.isEmpty()) {
 				throw new Exception("Option 'create-process' requires option 'collections' to be properly specified.");
