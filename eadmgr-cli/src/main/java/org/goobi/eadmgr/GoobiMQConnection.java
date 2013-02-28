@@ -26,21 +26,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
+
+import static java.lang.Thread.sleep;
 
 public class GoobiMQConnection {
 
 	private Connection connection;
 	private Session session;
 	private MessageProducer producer;
-
+	private MessageConsumer consumer;
+	private SynchronousMessageListener listener;
 	private Logger logger = LoggerFactory.getLogger(GoobiMQConnection.class);
 
-	public GoobiMQConnection(String brokerUrl, String subjectQueue) throws JMSException {
-		initActiveMqConnection(brokerUrl, subjectQueue);
+	public GoobiMQConnection(String brokerUrl, String subjectQueue, String resultTopic) throws JMSException {
+		initActiveMqConnection(brokerUrl, subjectQueue, resultTopic);
 	}
 
-	private void initActiveMqConnection(String brokerUrl, String subjectQueue) throws JMSException {
+	private void initActiveMqConnection(String brokerUrl, String subjectQueue, String resultTopic) throws JMSException {
 		logger.trace("Initialize ActiveMQ connection to {}.", brokerUrl);
 		logger.trace("Using queue {}.", subjectQueue);
 
@@ -51,8 +56,11 @@ public class GoobiMQConnection {
 		logger.trace("Connection established. Now creating session.");
 
 		session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-		Destination destination = session.createQueue(subjectQueue);
-		producer = session.createProducer(destination);
+		producer = session.createProducer(session.createQueue(subjectQueue));
+
+		consumer = session.createConsumer(session.createTopic(resultTopic));
+		listener = new SynchronousMessageListener();
+		consumer.setMessageListener(listener);
 	}
 
 	public void close() throws JMSException {
@@ -71,4 +79,47 @@ public class GoobiMQConnection {
 		producer.send(mapMessage);
 	}
 
+	public Map<String, Object> sendAndWaitForResult(Map<String, Object> message) throws JMSException {
+		send(message);
+
+		logger.trace("Receiving result message");
+		Message msg = listener.waitForMessage();
+
+		HashMap result = new HashMap<String, Object>();
+		if (msg instanceof MapMessage) {
+			MapMessage mmsg = (MapMessage) msg;
+			Enumeration nameEnum = mmsg.getMapNames();
+			while (nameEnum.hasMoreElements()) {
+				String propertyName = (String) nameEnum.nextElement();
+				result.put(propertyName, mmsg.getObject(propertyName));
+			}
+			logger.debug("Result message received");
+		} else {
+			logger.debug("No appropriate result message received");
+		}
+
+		return result;
+	}
+
+	private class SynchronousMessageListener implements MessageListener {
+		private Message last;
+
+		@Override
+		public void onMessage(Message message) {
+			last = message;
+		}
+
+		public Message waitForMessage() {
+			while (last == null) {
+				try {
+					sleep(100);
+				} catch (InterruptedException e) {
+					break;
+				}
+			}
+			Message msg = last;
+			last = null;
+			return msg;
+		}
+	}
 }
