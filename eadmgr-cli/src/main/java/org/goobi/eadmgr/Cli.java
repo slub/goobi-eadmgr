@@ -255,6 +255,8 @@ class Cli extends CliBase {
 			if (!result.get("level").equals("success")) {
 				logger.error(String.valueOf(result.get("message")));
 				return 1;
+			} else {
+				logger.info("Process for ID {} has been successfully created.", uuid);
 			}
 		}
 
