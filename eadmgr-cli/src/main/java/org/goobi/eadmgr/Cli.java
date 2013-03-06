@@ -195,6 +195,8 @@ class Cli extends CliBase {
 			command = Commands.List;
 		} else if (cmdl.hasOption("c")) {
 			command = Commands.Create;
+		} else {
+			command = Commands.Help;
 		}
 	}
 
