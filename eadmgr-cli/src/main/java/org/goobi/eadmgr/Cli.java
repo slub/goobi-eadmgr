@@ -90,7 +90,7 @@ class Cli extends CliBase {
 		// additional switches
 		options.addOption(OptionBuilder
 				.withLongOpt("validate")
-				.withDescription("Validate XML structure while parsing the EAD document. Exits with error code 1 if validation fails.").create());
+				.withDescription("Validate XML structure of the EAD document. Exits with error code 1 if validation fails. Can be used without other commands for just validating files.").create());
 		options.addOption(OptionBuilder
 				.withLongOpt("dry-run")
 				.withDescription("Print folder information instead of sending it.").create());
@@ -195,6 +195,8 @@ class Cli extends CliBase {
 			command = Commands.List;
 		} else if (cmdl.hasOption("c")) {
 			command = Commands.Create;
+		} else if (cmdl.hasOption("validate")) {
+			command = Commands.Validate;
 		} else {
 			command = Commands.Help;
 		}
@@ -215,6 +217,11 @@ class Cli extends CliBase {
 		EADDocument ead = new EADDocument();
 		ead.readEadFile(eadFile, isValidateOption);
 
+		// Validation happens while reading. Any validation error will throw an exception.
+		if (isValidateOption) {
+			logger.info(eadFile.getAbsolutePath() + " seems to be valid according to schema.");
+		}
+
 		switch (command) {
 			case List:
 				List<String> folderIds = ead.getFolderIds();
@@ -223,6 +230,9 @@ class Cli extends CliBase {
 			case Create:
 				Document vd = ead.extractFolderData(folderId);
 				returnCode = send(vd, template, doctype, brokerUrl, collections, userMessageFields);
+				break;
+			case Validate:
+				// If --validate option was used as the only command, just quit here.
 				break;
 		}
 
@@ -291,7 +301,8 @@ class Cli extends CliBase {
 	private enum Commands {
 		Help,
 		List,
-		Create
+		Create,
+		Validate
 	}
 }
 
