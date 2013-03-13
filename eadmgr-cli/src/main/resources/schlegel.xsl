@@ -108,6 +108,9 @@
             <xsl:element name="dimensions">
                 <xsl:value-of select="ead:did/ead:physdesc/ead:dimensions"/>
             </xsl:element>
+            <xsl:element name="addendum">
+                <xsl:value-of select="normalize-space(ead:odd[attribute::type='accompanyingMaterial'])"/>
+            </xsl:element>
             <xsl:element name="language">
                 <xsl:value-of select="ead:did/ead:langmaterial/ead:language/@langcode"/>
             </xsl:element>
