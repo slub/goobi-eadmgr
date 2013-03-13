@@ -90,7 +90,14 @@
                 <xsl:value-of select="ead:did/ead:container[attribute::type='folio']"/>
             </xsl:element>
             <xsl:element name="date">
-                <xsl:value-of select="ead:did/ead:unittitle/ead:unitdate/@normal"/>
+                <xsl:choose>
+                    <xsl:when test="ead:did/ead:unittitle/ead:unitdate/@normal">
+                        <xsl:value-of select="ead:did/ead:unittitle/ead:unitdate/@normal"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="ead:did/ead:unittitle/ead:unitdate"/>
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:element>
             <xsl:element name="origin">
                 <xsl:value-of select="ead:did/ead:unittitle/ead:geogname[attribute::role]"/>
