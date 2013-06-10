@@ -41,12 +41,14 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 
 public class EADDocument {
 
-	public static final String SCHLEGEL_XSL = "schlegel.xsl";
 	private Logger logger = LoggerFactory.getLogger(EADDocument.class);
 	private Document ead;
 
@@ -93,11 +95,32 @@ public class EADDocument {
 
 	}
 
-	public Document extractFolderData(String folderId) throws Exception {
-		logger.trace("Get extraction profile file {} from classpath", SCHLEGEL_XSL);
-		Source extractionProfile = new StreamSource(this.getClass().getClassLoader().getResourceAsStream(SCHLEGEL_XSL));
-		logger.info("Extract data for {} using extraction profile {}", folderId, SCHLEGEL_XSL);
+	public Document extractFolderData(String folderId, String extractionProfileFilename) throws Exception {
+		Source extractionProfile = getFromClasspathOrFilesystem(extractionProfileFilename);
+		logger.info("Extract data for {} using extraction profile {}", folderId, extractionProfileFilename);
 		return extract(ead, extractionProfile, folderId);
+	}
+
+	private StreamSource getFromClasspathOrFilesystem(String extractionProfileFilename) throws Exception {
+		logger.trace("Try to get extraction profile file {} from classpath", extractionProfileFilename);
+
+		InputStream in;
+		in = this.getClass().getClassLoader().getResourceAsStream(extractionProfileFilename);
+
+		if (in != null) {
+			logger.trace("Extraction profile found on classpath");
+		} else {
+			logger.trace("Extraction profile not found on classpath. Try to load from file {}", extractionProfileFilename);
+			try {
+				in = new FileInputStream(extractionProfileFilename);
+				logger.trace("Extraction profile obtained from filesystem");
+			} catch (FileNotFoundException e) {
+				throw new Exception("Cannot obtain extraction profile. Neither is " + extractionProfileFilename +
+						" to be found on the classpath nor can the file be obtained from filesystem.");
+			}
+		}
+
+		return new StreamSource(in);
 	}
 
 	private Document extract(Document ead, Source extractionProfile, String volumeId)
