@@ -42,6 +42,7 @@ class Cli extends CliBase {
 	public static final String DEFAULT_RESULT_TOPIC = "GoobiProduction.ResultMessages.Topic";
 	public static final String ACTIVEMQ_CONFIGURING_URL = "http://activemq.apache.org/cms/configuring.html";
 	public static final String PROMPT_HINT = "Try 'eadmgr -h' for more information.";
+	public static final String DEFAULT_EXTRACTION_PROFILE = "schlegel.xsl";
 	private String[] args;
 	private Options options;
 	private File eadFile;
@@ -58,6 +59,7 @@ class Cli extends CliBase {
 	private boolean isUseFolderId;
 	private Map<String, String> userMessageFields;
 	private String topicQueue;
+	private String extractionProfile;
 
 	public static void main(String[] args) {
 		Cli cli = new Cli();
@@ -118,6 +120,7 @@ class Cli extends CliBase {
 				.withDescription("User defined option in the form of <key>=<value> to append to the ActiveMQ message.")
 				.hasArgs()
 				.create("O"));
+		options.addOption("x", "extraction-profile", true, MessageFormat.format("XSLT EAD extraction profile name. Either an absolute pathname or a file that can be found on the classpath. If not given \"{0}\" is used.", DEFAULT_EXTRACTION_PROFILE));
 	}
 
 	public void parseArguments(String[] args) throws Exception {
@@ -141,6 +144,7 @@ class Cli extends CliBase {
 		template = cmdl.getOptionValue("t", DEFAULT_PROCESS_TEMPLATE);
 		isUseFolderId = cmdl.hasOption("use-folder-id");
 		userMessageFields = splitAndMap(cmdl.getOptionValues("O"));
+		extractionProfile = cmdl.getOptionValue("x", DEFAULT_EXTRACTION_PROFILE);
 
 		if (command == Commands.Create) {
 			folderId = cmdl.getOptionValue('c');
@@ -228,7 +232,7 @@ class Cli extends CliBase {
 				printList(folderIds);
 				break;
 			case Create:
-				Document vd = ead.extractFolderData(folderId);
+				Document vd = ead.extractFolderData(folderId, extractionProfile);
 				returnCode = send(vd, template, doctype, brokerUrl, collections, userMessageFields);
 				break;
 			case Validate:
