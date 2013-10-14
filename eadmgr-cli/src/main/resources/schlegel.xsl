@@ -115,6 +115,7 @@
                 <xsl:value-of select="ead:did/ead:langmaterial/ead:language/@langcode"/>
             </xsl:element>
             <xsl:apply-templates select="ead:did/ead:unittitle/ead:persname"/>
+            <xsl:apply-templates select="ead:did/ead:unittitle/ead:corpname"/>
         </xsl:element>
 
     </xsl:template>
@@ -132,6 +133,17 @@
 
     <xsl:template match="ead:persname[attribute::role='addressee']">
         <xsl:element name="addressee">
+            <xsl:element name="gnd-id">
+                <xsl:value-of select="@authfilenumber"/>
+            </xsl:element>
+            <xsl:element name="name">
+                <xsl:value-of select="@normal"/>
+            </xsl:element>
+        </xsl:element>
+    </xsl:template>
+
+    <xsl:template match="ead:corpname[attribute::role='creator']">
+        <xsl:element name="creator">
             <xsl:element name="gnd-id">
                 <xsl:value-of select="@authfilenumber"/>
             </xsl:element>
