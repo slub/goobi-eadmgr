@@ -43,6 +43,7 @@ class Cli extends CliBase {
 	public static final String ACTIVEMQ_CONFIGURING_URL = "http://activemq.apache.org/cms/configuring.html";
 	public static final String PROMPT_HINT = "Try 'eadmgr -h' for more information.";
 	public static final String DEFAULT_EXTRACTION_PROFILE = "schlegel.xsl";
+	public static final String IMPLEMENTATION_VERSION = Cli.class.getPackage().getImplementationVersion();
 	private String[] args;
 	private Options options;
 	private File eadFile;
@@ -214,6 +215,7 @@ class Cli extends CliBase {
 			return 0;
 		}
 
+		logger.info("Version: " + IMPLEMENTATION_VERSION);
 		logger.info("Processing " + eadFile.getAbsolutePath());
 
 		int returnCode = 0;
@@ -282,7 +284,7 @@ class Cli extends CliBase {
 	private void printUsageInformation() {
 		HelpFormatter formatter = new HelpFormatter();
 		formatter.setWidth(120);
-		formatter.printHelp("eadmgr [Options] [File]", options);
+		formatter.printHelp("eadmgr [Options] [File]\nVersion: " + IMPLEMENTATION_VERSION, options);
 	}
 
 	@Override

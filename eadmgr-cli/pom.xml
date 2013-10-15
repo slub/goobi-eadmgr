@@ -81,6 +81,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <mainClass>org.goobi.eadmgr.Cli</mainClass>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                         </manifest>
                     </archive>
                 </configuration>
