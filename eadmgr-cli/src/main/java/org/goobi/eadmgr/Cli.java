@@ -25,6 +25,7 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
+import org.xml.sax.SAXParseException;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -221,7 +222,7 @@ class Cli extends CliBase {
 		int returnCode = 0;
 
 		EADDocument ead = new EADDocument();
-		ead.readEadFile(eadFile, isValidateOption);
+        ead.readEadFile(eadFile, isValidateOption);
 
 		// Validation happens while reading. Any validation error will throw an exception.
 		if (isValidateOption) {
@@ -296,7 +297,13 @@ class Cli extends CliBase {
 		String msg = sw.toString();
 
 		if (logger != null) {
-			logger.error(msg);
+            if (ex instanceof SAXParseException) {
+                SAXParseException sax = (SAXParseException) ex;
+                logger.error(ex.getMessage() + " (at line " + sax.getLineNumber() + ")");
+                return;
+            } else {
+                logger.error(msg);
+            }
 		} else {
 			println(msg);
 		}

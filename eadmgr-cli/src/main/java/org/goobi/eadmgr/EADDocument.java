@@ -52,47 +52,39 @@ public class EADDocument {
 	private Logger logger = LoggerFactory.getLogger(EADDocument.class);
 	private Document ead;
 
-	public void readEadFile(File eadFile, boolean validateAgainstSchema) {
+	public void readEadFile(File eadFile, boolean validateAgainstSchema) throws Exception {
 		logger.trace(validateAgainstSchema ? "Read and validate" : "Reading");
 
-		try {
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-			dbf.setNamespaceAware(true);
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setNamespaceAware(true);
 
-			if (validateAgainstSchema) {
-				Schema eadSchema = EADSchema.getInstance();
-				dbf.setSchema(eadSchema);
-			}
+        if (validateAgainstSchema) {
+            Schema eadSchema = EADSchema.getInstance();
+            dbf.setSchema(eadSchema);
+        }
 
-			DocumentBuilder db = dbf.newDocumentBuilder();
+        DocumentBuilder db = dbf.newDocumentBuilder();
 
-			db.setErrorHandler(new ErrorHandler() {
-				@Override
-				public void warning(SAXParseException exception) throws SAXException {
-					throw exception;
-				}
+        db.setErrorHandler(new ErrorHandler() {
+            @Override
+            public void warning(SAXParseException exception) throws SAXException {
+                throw exception;
+            }
 
-				@Override
-				public void error(SAXParseException exception) throws SAXException {
-					throw exception;
-				}
+            @Override
+            public void error(SAXParseException exception) throws SAXException {
+                throw exception;
+            }
 
-				@Override
-				public void fatalError(SAXParseException exception) throws SAXException {
-					throw exception;
-				}
-			});
-			this.ead = db.parse(eadFile);
+            @Override
+            public void fatalError(SAXParseException exception) throws SAXException {
+                throw exception;
+            }
+        });
+        this.ead = db.parse(eadFile);
 
-			// http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
-			this.ead.getDocumentElement().normalize();
-
-		} catch (SAXParseException spe) {
-			logger.error(spe.getMessage() + " (at line " + spe.getLineNumber() + ")");
-		} catch (Exception ex) {
-			logger.error(ex.getMessage());
-		}
-
+        // http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
+        this.ead.getDocumentElement().normalize();
 	}
 
 	public Document extractFolderData(String folderId, String extractionProfileFilename) throws Exception {
